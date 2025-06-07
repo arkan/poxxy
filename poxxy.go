@@ -1,7 +1,9 @@
 package poxxy
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -81,17 +83,34 @@ func NewSchema(fields ...Field) *Schema {
 
 // ApplyHTTPRequest assigns data from an HTTP request to a schema
 func (s *Schema) ApplyHTTPRequest(r *http.Request) error {
-	if err := r.ParseForm(); err != nil {
-		return fmt.Errorf("failed to parse form: %w", err)
+	contentType := r.Header.Get("Content-Type")
+	switch contentType {
+	case "application/json":
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read request body: %w", err)
+		}
+
+		var data map[string]interface{}
+		if err := json.Unmarshal(body, &data); err != nil {
+			return fmt.Errorf("failed to unmarshal request body: %w", err)
+		}
+		return s.Apply(data)
+	case "application/x-www-form-urlencoded":
+		if err := r.ParseForm(); err != nil {
+			return fmt.Errorf("failed to parse form: %w", err)
+		}
+
+		form := make(map[string]interface{})
+
+		for key, values := range r.Form {
+			form[key] = values[0]
+		}
+
+		return s.Apply(form)
+	default:
+		return fmt.Errorf("unsupported content type: %s", contentType)
 	}
-
-	form := make(map[string]interface{})
-
-	for key, values := range r.Form {
-		form[key] = values[0]
-	}
-
-	return s.Apply(form)
 }
 
 // Apply assigns data to variables and validates them
