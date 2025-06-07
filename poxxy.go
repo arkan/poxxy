@@ -222,7 +222,7 @@ func convertValue[T any](value interface{}) (T, error) {
 	}
 
 	// Convert based on target type
-	switch targetType.Kind() {
+	switch kind := targetType.Kind(); kind {
 	case reflect.String:
 		str := fmt.Sprintf("%v", value)
 		return any(str).(T), nil
@@ -236,6 +236,10 @@ func convertValue[T any](value interface{}) (T, error) {
 			return any(int(v)).(T), nil
 		case string:
 			if i, err := strconv.Atoi(v); err == nil {
+				if kind == reflect.Int64 {
+					return any(int64(i)).(T), nil
+				}
+
 				return any(i).(T), nil
 			}
 		}
