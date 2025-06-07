@@ -230,10 +230,19 @@ func convertValue[T any](value interface{}) (T, error) {
 	case reflect.Int, reflect.Int64:
 		switch v := value.(type) {
 		case int:
+			if kind == reflect.Int64 {
+				return any(int64(v)).(T), nil
+			}
 			return any(v).(T), nil
 		case int64:
+			if kind == reflect.Int {
+				return any(int(v)).(T), nil
+			}
 			return any(v).(T), nil
 		case float64:
+			if kind == reflect.Int64 {
+				return any(int64(v)).(T), nil
+			}
 			return any(int(v)).(T), nil
 		case string:
 			if i, err := strconv.Atoi(v); err == nil {
