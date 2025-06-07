@@ -77,6 +77,61 @@ func main() {
 }
 ```
 
+## HTTP Request Parsing
+
+Poxxy can directly parse HTTP form data from requests:
+
+```go
+package main
+
+import (
+    "fmt"
+    "net/http"
+    "github.com/arkan/poxxy"
+)
+
+type UserRegistration struct {
+    Username string
+    Email    string
+    Age      int
+}
+
+func registerHandler(w http.ResponseWriter, r *http.Request) {
+    var user UserRegistration
+
+    // Define schema with validation rules
+    schema := poxxy.NewSchema(
+        poxxy.Value("username", &user.Username, poxxy.WithValidators(
+            poxxy.Required(),
+            poxxy.MinLength(3),
+            poxxy.MaxLength(20),
+        )),
+        poxxy.Value("email", &user.Email, poxxy.WithValidators(
+            poxxy.Required(),
+            poxxy.Email(),
+        )),
+        poxxy.Value("age", &user.Age, poxxy.WithValidators(
+            poxxy.Required(),
+            poxxy.Min(13),
+            poxxy.Max(120),
+        )),
+    )
+
+    // Parse and validate HTTP form data
+    if err := schema.ApplyHTTPRequest(r); err != nil {
+        http.Error(w, fmt.Sprintf("Validation failed: %v", err), http.StatusBadRequest)
+        return
+    }
+
+    fmt.Fprintf(w, "User registered: %+v\n", user)
+}
+
+func main() {
+    http.HandleFunc("/register", registerHandler)
+    http.ListenAndServe(":8080", nil)
+}
+```
+
 ## Advanced Usage
 
 ### Nested Structs

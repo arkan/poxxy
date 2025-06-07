@@ -78,8 +78,8 @@ func NewSchema(fields ...Field) *Schema {
 	}
 }
 
-// AssignHTTPRequest assigns data from an HTTP request to a schema
-func (s *Schema) AssignHTTPRequest(r *http.Request) error {
+// ApplyHTTPRequest assigns data from an HTTP request to a schema
+func (s *Schema) ApplyHTTPRequest(r *http.Request) error {
 	if err := r.ParseForm(); err != nil {
 		return fmt.Errorf("failed to parse form: %w", err)
 	}
