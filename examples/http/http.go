@@ -25,7 +25,7 @@ func main() {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("Hello, %s! You are %d years old.", name, age)))
+		w.Write([]byte(fmt.Sprintf("Hello, %s! You are %d years old. You are admin: %t", name, age, isAdmin)))
 	})
 
 	fmt.Println("Server is running on port 8080")

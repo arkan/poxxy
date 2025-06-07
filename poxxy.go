@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 // Validator represents a validation function
@@ -259,6 +260,16 @@ func convertValue[T any](value interface{}) (T, error) {
 	case reflect.Bool:
 		if b, ok := value.(bool); ok {
 			return any(b).(T), nil
+		}
+
+		if v, ok := value.(string); ok {
+			lower := strings.ToLower(v)
+			if lower == "true" || lower == "1" || lower == "yes" ||
+				lower == "y" || lower == "on" || lower == "t" {
+				return any(true).(T), nil
+			}
+
+			return any(false).(T), nil
 		}
 	}
 
