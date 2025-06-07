@@ -82,6 +82,8 @@ func NewSchema(fields ...Field) *Schema {
 }
 
 // ApplyHTTPRequest assigns data from an HTTP request to a schema
+// It supports application/json and application/x-www-form-urlencoded
+// It will return an error if the content type is not supported
 func (s *Schema) ApplyHTTPRequest(r *http.Request) error {
 	contentType := r.Header.Get("Content-Type")
 	switch contentType {
