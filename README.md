@@ -13,9 +13,9 @@ Poxxy is a powerful Go library that provides type-safe data mapping and validati
 - **Comprehensive Validation** - Built-in validators for common use cases with custom validator support
 - **Advanced Field Types** - Support for arrays, slices, pointers, nested structs, unions, and transformations
 - **Schema-Based Definition** - Declarative API for defining data structure and validation rules
-- **Conditional Validation** - Apply validators based on other field values
+- **Conditional Validation** - Apply validators based on other field values (Not fully implemented yet)
 - **Rich Error Reporting** - Detailed validation errors with field-level granularity
-- **Zero Allocation Friendly** - Efficient memory usage for high-performance applications
+- **Allocation Friendly** - Efficient memory usage for high-performance applications
 
 ## Installation
 
@@ -419,10 +419,8 @@ if err := schema.Apply(data); err != nil {
 
 - [ ] **Conditional Validation** - Full implementation of field-dependent validation
 - [ ] **Localization Support** - i18n error messages
-- [ ] **JSON Schema Export** - Generate JSON Schema from Poxxy schemas
-- [ ] **HTTP Integration** - Direct HTTP request parsing utilities
-- [ ] **Performance Optimizations** - Reflection caching and code generation
 - [ ] **Advanced Validators** - Credit card, phone number, date range validators
+- [ ] **Anything else in mind?** - Open issues/pull requests
 
 ### Future Considerations
 
