@@ -18,7 +18,10 @@ func main() {
 
 	schema := poxxy.NewSchema(
 		// poxxy.SliceOf[Attachment]("attachments", &attachments, nil, poxxy.WithValidators(poxxy.Required())),
-		poxxy.Map[int64, Attachment]("attachments", &attachments, nil, poxxy.WithValidators(poxxy.Required())),
+		poxxy.HTTPMap[int64, Attachment]("attachments", &attachments, func(s *poxxy.Schema, attachment *Attachment) {
+			poxxy.WithSchema(s, poxxy.Value[string]("name", &attachment.Name, poxxy.WithValidators(poxxy.Required())))
+			poxxy.WithSchema(s, poxxy.Value[int64]("size", &attachment.Size, poxxy.WithValidators(poxxy.Required())))
+		}, poxxy.WithValidators(poxxy.Required())),
 	)
 
 	http.HandleFunc("POST /files", func(w http.ResponseWriter, r *http.Request) {

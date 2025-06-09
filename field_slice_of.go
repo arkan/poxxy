@@ -82,7 +82,7 @@ func (f *SliceOfField[T]) Assign(data map[string]interface{}, schema *Schema) er
 }
 
 func (f *SliceOfField[T]) Validate(schema *Schema) error {
-	return ValidateFieldValidators(f.Validators, *f.ptr, f.name, schema)
+	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
 
 // SliceOf creates a slice field for structs with element-wise schema definition

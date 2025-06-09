@@ -47,7 +47,7 @@ func (f *HTTPMapField[K, V]) Assign(data map[string]interface{}, schema *Schema)
 }
 
 func (f *HTTPMapField[K, V]) Validate(schema *Schema) error {
-	return ValidateFieldValidators(f.Validators, *f.ptr, f.name, schema)
+	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
 
 // HTTPMap creates a map field for structs with element-wise schema definition
