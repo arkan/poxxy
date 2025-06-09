@@ -11,13 +11,13 @@ type Validator interface {
 	WithMessage(msg string) Validator
 }
 
-// ValidatorFunc is a function that implements Validator
-type ValidatorFunc struct {
+// ValidatorFn is a function that implements Validator
+type ValidatorFn struct {
 	fn  func(interface{}, string) error
 	msg string
 }
 
-func (v ValidatorFunc) Validate(value interface{}, fieldName string) error {
+func (v ValidatorFn) Validate(value interface{}, fieldName string) error {
 	err := v.fn(value, fieldName)
 	if err != nil && v.msg != "" {
 		return fmt.Errorf("%s", v.msg)
@@ -25,8 +25,8 @@ func (v ValidatorFunc) Validate(value interface{}, fieldName string) error {
 	return err
 }
 
-func (v ValidatorFunc) WithMessage(msg string) Validator {
-	return ValidatorFunc{fn: v.fn, msg: msg}
+func (v ValidatorFn) WithMessage(msg string) Validator {
+	return ValidatorFn{fn: v.fn, msg: msg}
 }
 
 // validateFieldValidators is a helper function to validate a list of validators, handling RequiredValidator specially

@@ -16,29 +16,29 @@ func (f *ValueFromField[T]) Name() string {
 }
 
 func (f *ValueFromField[T]) Assign(data map[string]interface{}, schema *Schema) error {
-	// ValueFrom doesn't assign, it validates existing values
-	return nil
-}
+	value, exists := data[f.name]
+	if !exists {
+		return nil
+	}
 
-func (f *ValueFromField[T]) Validate(schema *Schema) error {
-	converted, err := convertValue[T](f.value)
+	converted, err := convertValue[T](value)
 	if err != nil {
 		return fmt.Errorf("type conversion failed: %v", err)
 	}
 
-	for _, validator := range f.Validators {
-		if err := validator.Validate(converted, f.name); err != nil {
-			return err
-		}
-	}
+	f.value = converted
+
 	return nil
 }
 
-// ValueFrom validates a direct value (used in nested map validation)
-func ValueFrom[T any](name string, value interface{}, opts ...Option) Field {
+func (f *ValueFromField[T]) Validate(schema *Schema) error {
+	return validateFieldValidators(f.Validators, f.value, f.name, schema)
+}
+
+// V validates a direct value (used in map validation)
+func V[T any](name string, opts ...Option) Field {
 	field := &ValueFromField[T]{
-		name:  name,
-		value: value,
+		name: name,
 	}
 
 	for _, opt := range opts {

@@ -40,7 +40,7 @@ func Required() Validator {
 
 // NonZero validator - rejects zero values (use this for non-zero value requirements)
 func NonZero() Validator {
-	return ValidatorFunc{
+	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
 			if value == nil {
 				return fmt.Errorf("value cannot be zero")
@@ -79,7 +79,7 @@ func NonZero() Validator {
 // Email validator
 func Email() Validator {
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	return ValidatorFunc{
+	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
 			str, ok := value.(string)
 			if !ok {
@@ -95,7 +95,7 @@ func Email() Validator {
 
 // Min validator
 func Min(min interface{}) Validator {
-	return ValidatorFunc{
+	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
 			switch v := value.(type) {
 			case int:
@@ -114,7 +114,7 @@ func Min(min interface{}) Validator {
 
 // Max validator
 func Max(max interface{}) Validator {
-	return ValidatorFunc{
+	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
 			switch v := value.(type) {
 			case int:
@@ -133,7 +133,7 @@ func Max(max interface{}) Validator {
 
 // MinLength validator
 func MinLength(minLen int) Validator {
-	return ValidatorFunc{
+	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
 			v := reflect.ValueOf(value)
 			switch v.Kind() {
@@ -153,7 +153,7 @@ func MinLength(minLen int) Validator {
 
 // MaxLength validator
 func MaxLength(maxLen int) Validator {
-	return ValidatorFunc{
+	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
 			v := reflect.ValueOf(value)
 			switch v.Kind() {
@@ -173,7 +173,7 @@ func MaxLength(maxLen int) Validator {
 
 // URL validator
 func URL() Validator {
-	return ValidatorFunc{
+	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
 			str, ok := value.(string)
 			if !ok {
@@ -191,9 +191,15 @@ func URL() Validator {
 	}
 }
 
+func ValidatorFunc(fn func(value interface{}, fieldName string) error) Validator {
+	return ValidatorFn{
+		fn: fn,
+	}
+}
+
 // In validator
 func In(values ...interface{}) Validator {
-	return ValidatorFunc{
+	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
 			for _, v := range values {
 				if reflect.DeepEqual(value, v) {
@@ -207,7 +213,7 @@ func In(values ...interface{}) Validator {
 
 // Each validator applies validators to each element of a slice/array
 func Each(validators ...Validator) Validator {
-	return ValidatorFunc{
+	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
 			v := reflect.ValueOf(value)
 			if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
@@ -229,7 +235,7 @@ func Each(validators ...Validator) Validator {
 
 // Unique validator ensures all elements in slices, arrays, or maps are unique
 func Unique() Validator {
-	return ValidatorFunc{
+	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
 			v := reflect.ValueOf(value)
 
@@ -265,7 +271,7 @@ func Unique() Validator {
 
 // UniqueBy validator ensures all elements in slices/arrays are unique by a specific key extractor function
 func UniqueBy(keyExtractor func(interface{}) interface{}) Validator {
-	return ValidatorFunc{
+	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
 			v := reflect.ValueOf(value)
 
