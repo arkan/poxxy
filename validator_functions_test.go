@@ -681,7 +681,7 @@ func TestValidatorWithMessage(t *testing.T) {
 	})
 }
 
-func TestSliceOf(t *testing.T) {
+func TestSlice(t *testing.T) {
 	type Person struct {
 		Name string
 		Age  int
@@ -692,7 +692,7 @@ func TestSliceOf(t *testing.T) {
 		var people []Person
 
 		schema := NewSchema(
-			SliceOf[Person]("people", &people, func(s *Schema, p *Person) {
+			Slice[Person]("people", &people, func(s *Schema, p *Person) {
 				WithSchema(s, Value[string]("name", &p.Name, WithValidators(Required())))
 				WithSchema(s, Value[int]("age", &p.Age, WithValidators(Min(0))))
 			}, WithValidators(Required())),
@@ -728,7 +728,7 @@ func TestSliceOf(t *testing.T) {
 		var people []Person
 
 		schema := NewSchema(
-			SliceOf[Person]("people", &people, func(s *Schema, p *Person) {
+			Slice[Person]("people", &people, func(s *Schema, p *Person) {
 				WithSchema(s, Value[string]("name", &p.Name, WithValidators(Required())))
 				WithSchema(s, Value[int]("age", &p.Age, WithValidators(Min(0))))
 			}),
@@ -757,7 +757,7 @@ func TestSliceOf(t *testing.T) {
 		var people []Person
 
 		schema := NewSchema(
-			SliceOf[Person]("people", &people, func(s *Schema, p *Person) {
+			Slice[Person]("people", &people, func(s *Schema, p *Person) {
 				WithSchema(s, Value[string]("name", &p.Name, WithValidators(Required())))
 				WithSchema(s, Value[int]("age", &p.Age, WithValidators(Min(0))))
 			}, WithValidators(MinLength(2))),
@@ -780,7 +780,7 @@ func TestSliceOf(t *testing.T) {
 		var people []Person
 
 		schema := NewSchema(
-			SliceOf[Person]("people", &people, func(s *Schema, p *Person) {
+			Slice[Person]("people", &people, func(s *Schema, p *Person) {
 				WithSchema(s, Value[string]("name", &p.Name, WithValidators(Required())))
 				WithSchema(s, Value[int]("age", &p.Age, WithValidators(Min(0))))
 			}),
@@ -808,7 +808,7 @@ func TestSliceOf(t *testing.T) {
 		var people []Person
 
 		schema := NewSchema(
-			SliceOf[Person]("people", &people, func(s *Schema, p *Person) {
+			Slice[Person]("people", &people, func(s *Schema, p *Person) {
 				WithSchema(s, Value[string]("name", &p.Name, WithValidators(Required())))
 				WithSchema(s, Value[int]("age", &p.Age, WithValidators(Min(0))))
 			}),

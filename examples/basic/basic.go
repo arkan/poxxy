@@ -95,7 +95,7 @@ func main() {
 		)),
 
 		// 5. Dynamic slice for comparison
-		poxxy.Slice[int]("recent_scores", &recentScores, poxxy.WithValidators(
+		poxxy.Slice[int]("recent_scores", &recentScores, nil, poxxy.WithValidators(
 			poxxy.MaxLength(10),
 			poxxy.Each(poxxy.Min(0), poxxy.Max(100)),
 		)),

@@ -17,7 +17,7 @@ func TestPoxxy_BasicTypes(t *testing.T) {
 		Value("name", &name, WithValidators(Required())),
 		Value("age", &age, WithValidators(Required())),
 		Value("isAdmin", &isAdmin, WithValidators(Required())),
-		Slice("tags", &tags, WithValidators(Required())),
+		Slice("tags", &tags, nil, WithValidators(Required())),
 	)
 
 	jsonData := `{"name": "test", "age": 20, "isAdmin": true, "tags": ["tag1", "tag2"]}`
@@ -101,7 +101,7 @@ func TestPoxxy_Slice(t *testing.T) {
 
 	var users []User
 	schema := NewSchema(
-		SliceOf("users", &users, func(schema *Schema, user *User) {
+		Slice("users", &users, func(schema *Schema, user *User) {
 			WithSchema(schema, Value("name", &user.Name, WithValidators(Required())))
 			WithSchema(schema, Value("age", &user.Age, WithValidators(Required())))
 		}, WithValidators(Required())),
@@ -112,6 +112,8 @@ func TestPoxxy_Slice(t *testing.T) {
 	if err != nil {
 		t.Errorf("Schema.ApplyJSON() error = %v", err)
 	}
+
+	t.Fail()
 
 	expectedUsers := []User{{Name: "test", Age: 20}, {Name: "test2", Age: 21}}
 	if len(users) != 2 {

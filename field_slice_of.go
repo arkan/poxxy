@@ -5,19 +5,19 @@ import (
 	"reflect"
 )
 
-// SliceOfField represents a slice field where each element is a struct
-type SliceOfField[T any] struct {
+// SliceField represents a slice field where each element is a struct
+type SliceField[T any] struct {
 	name       string
 	ptr        *[]T
 	callback   func(*Schema, *T)
 	Validators []Validator
 }
 
-func (f *SliceOfField[T]) Name() string {
+func (f *SliceField[T]) Name() string {
 	return f.name
 }
 
-func (f *SliceOfField[T]) Assign(data map[string]interface{}, schema *Schema) error {
+func (f *SliceField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
 		return nil
@@ -53,41 +53,47 @@ func (f *SliceOfField[T]) Assign(data map[string]interface{}, schema *Schema) er
 
 	// Process each element
 	for i, item := range slice {
-		itemMap, ok := item.(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("element %d: expected map, got %T", i, item)
+		switch v := item.(type) {
+		// If the item is a map, we need to create a new instance for this element
+		// THis is the case when we want to map the element to a struct.
+		case map[string]interface{}:
+			// Create a new instance for this element
+			var element T
+
+			// Create a sub-schema for this element
+			subSchema := NewSchema()
+
+			// Apply the callback to define the schema for this element
+			if f.callback != nil {
+				f.callback(subSchema, &element)
+			}
+
+			// Assign and validate this element
+			if err := subSchema.Apply(v); err != nil {
+				return fmt.Errorf("element %d: %v", i, err)
+			}
+
+			result[i] = element
+		default:
+			converted, err := convertValue[T](v)
+			if err != nil {
+				return fmt.Errorf("element %d: %v", i, err)
+			}
+			result[i] = converted
 		}
-
-		// Create a new instance for this element
-		var element T
-
-		// Create a sub-schema for this element
-		subSchema := NewSchema()
-
-		// Apply the callback to define the schema for this element
-		if f.callback != nil {
-			f.callback(subSchema, &element)
-		}
-
-		// Assign and validate this element
-		if err := subSchema.Apply(itemMap); err != nil {
-			return fmt.Errorf("element %d: %v", i, err)
-		}
-
-		result[i] = element
 	}
 
 	*f.ptr = result
 	return nil
 }
 
-func (f *SliceOfField[T]) Validate(schema *Schema) error {
+func (f *SliceField[T]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
 
-// SliceOf creates a slice field for structs with element-wise schema definition
-func SliceOf[T any](name string, ptr *[]T, callback func(*Schema, *T), opts ...Option) Field {
-	field := &SliceOfField[T]{
+// Slice creates a slice field.
+func Slice[T any](name string, ptr *[]T, callback func(*Schema, *T), opts ...Option) Field {
+	field := &SliceField[T]{
 		name:     name,
 		ptr:      ptr,
 		callback: callback,
