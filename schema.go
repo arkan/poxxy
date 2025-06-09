@@ -50,7 +50,11 @@ func (s *Schema) ApplyHTTPRequest(r *http.Request) error {
 
 		form := make(map[string]interface{})
 
+		// Note: we are using Postform and not Form because we don't want to include
+		// the data from the url query params.
+		// See: https://pkg.go.dev/net/http#Request.PostForm
 		for key, values := range r.PostForm {
+			// We only support the first value of each form field
 			form[key] = values[0]
 		}
 
