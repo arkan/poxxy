@@ -36,7 +36,7 @@ func (f *HTTPMapField[K, V]) Assign(data map[string]interface{}, schema *Schema)
 		var element V
 		subSchema := NewSchema()
 		f.callback(subSchema, &element)
-		if err := subSchema.Apply(value); err != nil {
+		if err := subSchema.Apply(convertMapStringStringToMapStringInterface(value)); err != nil {
 			return fmt.Errorf("key %s: %v", key, err)
 		}
 		result[convertedKey] = element
@@ -84,8 +84,8 @@ func convertToURLValues(data map[string]interface{}) url.Values {
 	return values
 }
 
-func parseFormCollection(values url.Values, typeName string) map[string]map[string]interface{} {
-	result := make(map[string]map[string]interface{})
+func parseFormCollection(values url.Values, typeName string) map[string]map[string]string {
+	result := make(map[string]map[string]string)
 
 	for key, values := range values {
 		re := regexp.MustCompile(typeName + "\\[([0-9A-Za-z_-]+)\\]\\[([a-zA-Z_-]+)\\]")
@@ -97,11 +97,19 @@ func parseFormCollection(values url.Values, typeName string) map[string]map[stri
 
 			// Initialize the inner map if it doesn't exist
 			if _, exists := result[identifier]; !exists {
-				result[identifier] = make(map[string]interface{})
+				result[identifier] = make(map[string]string)
 			}
 
 			result[identifier][fieldName] = values[0]
 		}
+	}
+	return result
+}
+
+func convertMapStringStringToMapStringInterface(data map[string]string) map[string]interface{} {
+	result := make(map[string]interface{})
+	for key, value := range data {
+		result[key] = value
 	}
 	return result
 }
