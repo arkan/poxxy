@@ -7,6 +7,10 @@ import (
 	"net/http"
 )
 
+// MaxBodySize is the maximum size of the body of an HTTP request
+// You can change this value to limit the size of the body of an HTTP request
+const MaxBodySize = 5 << 20 // 5MB limit
+
 // Schema represents a validation schema
 type Schema struct {
 	fields        []Field
@@ -29,7 +33,7 @@ func (s *Schema) ApplyHTTPRequest(r *http.Request) error {
 	contentType := r.Header.Get("Content-Type")
 	switch contentType {
 	case "application/json":
-		body, err := io.ReadAll(r.Body)
+		body, err := io.ReadAll(io.LimitReader(r.Body, MaxBodySize))
 		if err != nil {
 			return fmt.Errorf("failed to read request body: %w", err)
 		}
