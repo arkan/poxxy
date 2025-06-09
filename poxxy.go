@@ -34,38 +34,6 @@ func (v ValidatorFunc) WithMessage(msg string) Validator {
 	return ValidatorFunc{fn: v.fn, msg: msg}
 }
 
-// FieldError represents a validation error for a specific field
-type FieldError struct {
-	Field string
-	Error error
-}
-
-// Errors represents multiple validation errors
-type Errors []FieldError
-
-func (e Errors) Error() string {
-	var msgs []string
-	for _, err := range e {
-		msgs = append(msgs, fmt.Sprintf("%s: %v", err.Field, err.Error))
-	}
-	// Manual join instead of using strings.Join
-	if len(msgs) == 0 {
-		return ""
-	}
-	result := msgs[0]
-	for i := 1; i < len(msgs); i++ {
-		result += "; " + msgs[i]
-	}
-	return result
-}
-
-// Field represents a field definition in a schema
-type Field interface {
-	Name() string
-	Assign(data map[string]interface{}, schema *Schema) error
-	Validate(schema *Schema) error
-}
-
 // Schema represents a validation schema
 type Schema struct {
 	fields        []Field
@@ -105,13 +73,18 @@ func (s *Schema) ApplyHTTPRequest(r *http.Request) error {
 
 		form := make(map[string]interface{})
 
-		for key, values := range r.Form {
+		for key, values := range r.PostForm {
 			form[key] = values[0]
 		}
 
 		return s.Apply(form)
 	default:
-		return fmt.Errorf("unsupported content type: %s", contentType)
+		// We parse request url query params
+		params := make(map[string]interface{})
+		for key, values := range r.URL.Query() {
+			params[key] = values[0]
+		}
+		return s.Apply(params)
 	}
 }
 
@@ -176,54 +149,13 @@ func (s *Schema) IsFieldPresent(fieldName string) bool {
 	return s.presentFields[fieldName]
 }
 
+func (s *Schema) SetFieldPresent(fieldName string) {
+	s.presentFields[fieldName] = true
+}
+
 // WithSchema helper function to add fields to a schema
 func WithSchema(schema *Schema, field Field) {
 	schema.fields = append(schema.fields, field)
-}
-
-// ValueField represents a basic value field
-type ValueField[T any] struct {
-	name       string
-	ptr        *T
-	Validators []Validator
-}
-
-func (f *ValueField[T]) Name() string {
-	return f.name
-}
-
-func (f *ValueField[T]) Assign(data map[string]interface{}, schema *Schema) error {
-	value, exists := data[f.name]
-	if !exists {
-		return nil // Will be caught by Required validator if needed
-	}
-
-	// Type conversion
-	converted, err := convertValue[T](value)
-	if err != nil {
-		return fmt.Errorf("type conversion failed: %v", err)
-	}
-
-	*f.ptr = converted
-	return nil
-}
-
-func (f *ValueField[T]) Validate(schema *Schema) error {
-	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
-}
-
-// Value creates a value field
-func Value[T any](name string, ptr *T, opts ...Option) Field {
-	field := &ValueField[T]{
-		name: name,
-		ptr:  ptr,
-	}
-
-	for _, opt := range opts {
-		opt.Apply(field)
-	}
-
-	return field
 }
 
 // convertValue converts interface{} to type T
