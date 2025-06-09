@@ -55,19 +55,19 @@ func TestPoxxy_Map(t *testing.T) {
 			&user.Preferences,
 			WithValidators(Required()),
 			WithMapCallback(func(schema *Schema, key string, value string) {
-				WithSchema(schema, V[string]("color", WithValidators(Required(), ValidatorFunc(func(value interface{}, fieldName string) error {
+				WithSchema(schema, ValueWithoutAssign[string]("color", WithValidators(Required(), ValidatorFunc(func(value interface{}, fieldName string) error {
 					color, ok := value.(string)
 					if !ok {
 						return fmt.Errorf("invalid color")
 					}
 
-					if !strings.HasPrefix(color, "c") {
+					if !strings.HasPrefix(color, "b") {
 						return fmt.Errorf("color must start with b for field %s", fieldName)
 					}
 
 					return nil
 				}))))
-				WithSchema(schema, V[string]("size", WithValidators(Required(), In("small", "medium", "large"))))
+				WithSchema(schema, ValueWithoutAssign[string]("size", WithValidators(Required(), In("small", "medium", "large"))))
 			}),
 		),
 	)

@@ -4,18 +4,18 @@ import (
 	"fmt"
 )
 
-// ValueFromField represents a field that validates a direct value
-type ValueFromField[T any] struct {
+// ValueWithoutAssignField represents a field that validates a direct value
+type ValueWithoutAssignField[T any] struct {
 	name       string
 	value      interface{}
 	Validators []Validator
 }
 
-func (f *ValueFromField[T]) Name() string {
+func (f *ValueWithoutAssignField[T]) Name() string {
 	return f.name
 }
 
-func (f *ValueFromField[T]) Assign(data map[string]interface{}, schema *Schema) error {
+func (f *ValueWithoutAssignField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
 		return nil
@@ -31,13 +31,13 @@ func (f *ValueFromField[T]) Assign(data map[string]interface{}, schema *Schema) 
 	return nil
 }
 
-func (f *ValueFromField[T]) Validate(schema *Schema) error {
+func (f *ValueWithoutAssignField[T]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, f.value, f.name, schema)
 }
 
-// V validates a direct value (used in map validation)
-func V[T any](name string, opts ...Option) Field {
-	field := &ValueFromField[T]{
+// ValueWithoutAssign validates a direct value (used in map validation)
+func ValueWithoutAssign[T any](name string, opts ...Option) Field {
+	field := &ValueWithoutAssignField[T]{
 		name: name,
 	}
 

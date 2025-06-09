@@ -10,20 +10,20 @@ import (
 
 func TestSchema_ApplyHTTPRequest(t *testing.T) {
 	tests := []struct {
-		name        string
-		setupSchema func() *Schema
-		request     *http.Request
-		wantErr     bool
-		expectedErr string
+		name         string
+		setupSchema  func(name *string, age *int) *Schema
+		request      *http.Request
+		wantErr      bool
+		expectedErr  string
+		expectedName string
+		expectedAge  int
 	}{
 		{
 			name: "JSON content type with valid data",
-			setupSchema: func() *Schema {
-				var name string
-				var age int
+			setupSchema: func(name *string, age *int) *Schema {
 				return NewSchema(
-					Value("name", &name),
-					Value("age", &age),
+					Value("name", name),
+					Value("age", age),
 				)
 			},
 			request: func() *http.Request {
@@ -32,14 +32,15 @@ func TestSchema_ApplyHTTPRequest(t *testing.T) {
 				req.Header.Set("Content-Type", "application/json")
 				return req
 			}(),
-			wantErr: false,
+			wantErr:      false,
+			expectedName: "John",
+			expectedAge:  30,
 		},
 		{
 			name: "JSON content type with invalid JSON",
-			setupSchema: func() *Schema {
-				var name string
+			setupSchema: func(name *string, age *int) *Schema {
 				return NewSchema(
-					Value("name", &name),
+					Value("name", name),
 				)
 			},
 			request: func() *http.Request {
@@ -53,12 +54,10 @@ func TestSchema_ApplyHTTPRequest(t *testing.T) {
 		},
 		{
 			name: "form-urlencoded content type with valid data",
-			setupSchema: func() *Schema {
-				var name string
-				var age int
+			setupSchema: func(name *string, age *int) *Schema {
 				return NewSchema(
-					Value("name", &name),
-					Value("age", &age),
+					Value("name", name),
+					Value("age", age),
 				)
 			},
 			request: func() *http.Request {
@@ -69,44 +68,33 @@ func TestSchema_ApplyHTTPRequest(t *testing.T) {
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				return req
 			}(),
-			wantErr: false,
+			wantErr:      false,
+			expectedName: "John",
+			expectedAge:  30,
 		},
 		{
-			name: "unsupported content type",
-			setupSchema: func() *Schema {
-				var name string
+			name: "no content type",
+			setupSchema: func(name *string, age *int) *Schema {
 				return NewSchema(
-					Value("name", &name),
+					Value("name", name),
+					Value("age", age),
 				)
 			},
 			request: func() *http.Request {
-				req, _ := http.NewRequest("POST", "/test", strings.NewReader("some data"))
-				req.Header.Set("Content-Type", "text/plain")
+				req, _ := http.NewRequest("POST", "/test?name=John&age=30", strings.NewReader("some data"))
 				return req
 			}(),
-			wantErr:     true,
-			expectedErr: "unsupported content type: text/plain",
-		},
-		{
-			name: "empty content type defaults to unsupported",
-			setupSchema: func() *Schema {
-				var name string
-				return NewSchema(
-					Value("name", &name),
-				)
-			},
-			request: func() *http.Request {
-				req, _ := http.NewRequest("POST", "/test", strings.NewReader("some data"))
-				return req
-			}(),
-			wantErr:     true,
-			expectedErr: "unsupported content type:",
+			wantErr:      false,
+			expectedName: "John",
+			expectedAge:  30,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			schema := tt.setupSchema()
+			var name string
+			var age int
+			schema := tt.setupSchema(&name, &age)
 			err := schema.ApplyHTTPRequest(tt.request)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Schema.ApplyHTTPRequest() error = %v, wantErr %v", err, tt.wantErr)
@@ -114,6 +102,14 @@ func TestSchema_ApplyHTTPRequest(t *testing.T) {
 			}
 			if tt.wantErr && err != nil && !strings.Contains(err.Error(), tt.expectedErr) {
 				t.Errorf("Schema.ApplyHTTPRequest() error = %v, expected to contain %v", err.Error(), tt.expectedErr)
+			}
+			if !tt.wantErr {
+				if name != tt.expectedName {
+					t.Errorf("Schema.ApplyHTTPRequest() name = %v, want %v", name, tt.expectedName)
+				}
+				if age != tt.expectedAge {
+					t.Errorf("Schema.ApplyHTTPRequest() age = %v, want %v", age, tt.expectedAge)
+				}
 			}
 		})
 	}

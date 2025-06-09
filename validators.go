@@ -83,11 +83,11 @@ func (o ValidatorsOption) Apply(field interface{}) {
 		f.Validators = append(f.Validators, o.validators...)
 	case *SliceField[float64]:
 		f.Validators = append(f.Validators, o.validators...)
-	case *ValueFromField[string]:
+	case *ValueWithoutAssignField[string]:
 		f.Validators = append(f.Validators, o.validators...)
-	case *ValueFromField[int]:
+	case *ValueWithoutAssignField[int]:
 		f.Validators = append(f.Validators, o.validators...)
-	case *ValueFromField[bool]:
+	case *ValueWithoutAssignField[bool]:
 		f.Validators = append(f.Validators, o.validators...)
 	default:
 		// Fallback to reflection for types we haven't explicitly handled
