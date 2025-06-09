@@ -118,3 +118,63 @@ func TestSchema_ApplyHTTPRequest(t *testing.T) {
 		})
 	}
 }
+
+func TestSchema_ApplyJSON(t *testing.T) {
+	tests := []struct {
+		name        string
+		setupSchema func() *Schema
+		jsonData    string
+		wantErr     bool
+		expectedErr string
+	}{
+		{
+			name: "valid json",
+			setupSchema: func() *Schema {
+				var name string
+				return NewSchema(
+					Value("name", &name),
+				)
+			},
+			jsonData: `{"name": "test"}`,
+			wantErr:  false,
+		},
+		{
+			name: "invalid json",
+			setupSchema: func() *Schema {
+				var name string
+				return NewSchema(
+					Value("name", &name),
+				)
+			},
+			jsonData:    `{"name": "test"`,
+			wantErr:     true,
+			expectedErr: "failed to unmarshal request body",
+		},
+		{
+			name: "validation error",
+			setupSchema: func() *Schema {
+				var age int
+				return NewSchema(
+					Value("age", &age, WithValidators(Required())),
+				)
+			},
+			jsonData:    `{"name": "test"}`,
+			wantErr:     true,
+			expectedErr: "age: field is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			schema := tt.setupSchema()
+			err := schema.ApplyJSON([]byte(tt.jsonData))
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Schema.ApplyJSON() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err != nil && !strings.Contains(err.Error(), tt.expectedErr) {
+				t.Errorf("Schema.ApplyJSON() error = %v, expected to contain %v", err.Error(), tt.expectedErr)
+			}
+		})
+	}
+}

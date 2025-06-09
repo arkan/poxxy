@@ -61,6 +61,17 @@ func (s *Schema) ApplyHTTPRequest(r *http.Request) error {
 	}
 }
 
+// ApplyJSON assigns data from a JSON string to a schema
+func (s *Schema) ApplyJSON(jsonData []byte) error {
+	var data map[string]interface{}
+
+	if err := json.Unmarshal(jsonData, &data); err != nil {
+		return fmt.Errorf("failed to unmarshal request body: %w", err)
+	}
+
+	return s.Apply(data)
+}
+
 // Apply assigns data to variables and validates them
 func (s *Schema) Apply(data map[string]interface{}) error {
 	s.data = data
