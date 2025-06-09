@@ -191,9 +191,11 @@ func URL() Validator {
 	}
 }
 
-func ValidatorFunc(fn func(value interface{}, fieldName string) error) Validator {
+func ValidatorFunc[T any](fn func(value T, fieldName string) error) Validator {
 	return ValidatorFn{
-		fn: fn,
+		fn: func(value interface{}, fieldName string) error {
+			return fn(value.(T), fieldName)
+		},
 	}
 }
 
