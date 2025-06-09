@@ -61,12 +61,7 @@ func (f *ArrayField[T]) Validate(schema *Schema) error {
 	arrayValue := reflect.ValueOf(f.ptr).Elem()
 	arrayInterface := arrayValue.Interface()
 
-	for _, validator := range f.Validators {
-		if err := validator.Validate(arrayInterface, f.name); err != nil {
-			return err
-		}
-	}
-	return nil
+	return validateFieldValidators(f.Validators, arrayInterface, f.name, schema)
 }
 
 // Array creates an array field

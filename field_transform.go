@@ -39,12 +39,7 @@ func (f *TransformField[From, To]) Assign(data map[string]interface{}, schema *S
 }
 
 func (f *TransformField[From, To]) Validate(schema *Schema) error {
-	for _, validator := range f.Validators {
-		if err := validator.Validate(*f.ptr, f.name); err != nil {
-			return err
-		}
-	}
-	return nil
+	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
 
 // Transform creates a transformation field

@@ -113,8 +113,6 @@ func TestPoxxy_Slice(t *testing.T) {
 		t.Errorf("Schema.ApplyJSON() error = %v", err)
 	}
 
-	t.Fail()
-
 	expectedUsers := []User{{Name: "test", Age: 20}, {Name: "test2", Age: 21}}
 	if len(users) != 2 {
 		t.Errorf("Schema.ApplyJSON() users = %v, want %v", users, expectedUsers)
@@ -132,5 +130,58 @@ func TestPoxxy_Slice(t *testing.T) {
 	}
 	if users[1].Age != 21 {
 		t.Errorf("Schema.ApplyJSON() users[1].Age = %v, want %v", users[1].Age, 21)
+	}
+}
+
+func TestPoxxy_Boolean(t *testing.T) {
+	{
+		var isAdmin bool
+		schema := NewSchema(
+			Value("isAdmin", &isAdmin, WithValidators(Required())),
+		)
+
+		jsonData := `{"isAdmin": true}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		if !isAdmin {
+			t.Errorf("Schema.ApplyJSON() isAdmin = %v, want %v", isAdmin, true)
+		}
+	}
+
+	{
+		var isAdmin *bool
+		schema := NewSchema(
+			Pointer("isAdmin", &isAdmin, WithValidators(Required())),
+		)
+
+		jsonData := `{"isAdmin": true}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		if isAdmin != nil && *isAdmin != true {
+			t.Errorf("Schema.ApplyJSON() isAdmin = %v, want %v", *isAdmin, true)
+		}
+	}
+
+	{
+		var isAdmin *bool
+		schema := NewSchema(
+			Pointer("isAdmin", &isAdmin, WithValidators(Required())),
+		)
+
+		jsonData := `{}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err == nil {
+			t.Errorf("Schema.ApplyJSON() error = nil, want not nil")
+		}
+
+		if !strings.Contains(err.Error(), "isAdmin: field is required") {
+			t.Errorf("Schema.ApplyJSON() error = %v, want %v", err, "isAdmin: field is required")
+		}
 	}
 }

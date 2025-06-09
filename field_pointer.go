@@ -52,21 +52,11 @@ func (f *PointerField[T]) Assign(data map[string]interface{}, schema *Schema) er
 func (f *PointerField[T]) Validate(schema *Schema) error {
 	if *f.ptr == nil {
 		// Pointer is nil - skip validation unless required
-		for _, validator := range f.Validators {
-			if err := validator.Validate(nil, f.name); err != nil {
-				return err
-			}
-		}
-		return nil
+		return validateFieldValidators(f.Validators, nil, f.name, schema)
 	}
 
 	// Validate the pointed value
-	for _, validator := range f.Validators {
-		if err := validator.Validate(**f.ptr, f.name); err != nil {
-			return err
-		}
-	}
-	return nil
+	return validateFieldValidators(f.Validators, **f.ptr, f.name, schema)
 }
 
 // Pointer creates a pointer field
