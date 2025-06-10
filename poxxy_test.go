@@ -17,7 +17,7 @@ func TestPoxxy_BasicTypes(t *testing.T) {
 		Value("name", &name, WithValidators(Required())),
 		Value("age", &age, WithValidators(Required())),
 		Value("isAdmin", &isAdmin, WithValidators(Required())),
-		Slice("tags", &tags, nil, WithValidators(Required())),
+		Slice("tags", &tags, WithValidators(Required())),
 	)
 
 	jsonData := `{"name": "test", "age": 20, "isAdmin": true, "tags": ["tag1", "tag2"]}`
@@ -54,7 +54,7 @@ func TestPoxxy_Map(t *testing.T) {
 		Map("preferences",
 			&user.Preferences,
 			WithValidators(Required()),
-			WithMapCallback(func(schema *Schema, key string, value string) {
+			WithSubSchemaMap(func(schema *Schema, key string, value string) {
 				WithSchema(
 					schema,
 					ValueWithoutAssign[string]("color",
@@ -101,10 +101,13 @@ func TestPoxxy_Slice(t *testing.T) {
 
 	var users []User
 	schema := NewSchema(
-		Slice("users", &users, func(schema *Schema, user *User) {
-			WithSchema(schema, Value("name", &user.Name, WithValidators(Required())))
-			WithSchema(schema, Value("age", &user.Age, WithValidators(Required())))
-		}, WithValidators(Required())),
+		Slice("users", &users,
+			WithSubSchema(func(schema *Schema, user *User) {
+				WithSchema(schema, Value("name", &user.Name, WithValidators(Required())))
+				WithSchema(schema, Value("age", &user.Age, WithValidators(Required())))
+			}),
+			WithValidators(Required()),
+		),
 	)
 
 	jsonData := `{"users": [{"name": "test", "age": 20}, {"name": "test2", "age": 21}]}`
@@ -183,5 +186,120 @@ func TestPoxxy_Boolean(t *testing.T) {
 		if !strings.Contains(err.Error(), "isAdmin: field is required") {
 			t.Errorf("Schema.ApplyJSON() error = %v, want %v", err, "isAdmin: field is required")
 		}
+	}
+}
+
+func TestPoxxy_Struct_Required(t *testing.T) {
+	type User struct {
+		Name string
+		Age  int
+	}
+
+	{
+		var user User
+		schema := NewSchema(
+			Struct("user", &user, WithValidators(Required())),
+		)
+
+		jsonData := `{}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err == nil {
+			t.Errorf("Schema.ApplyJSON() error = nil, want not nil")
+		}
+	}
+	{
+		var user User
+		schema := NewSchema(
+			Struct("user", &user, WithValidators(Required()), WithSubSchema(func(schema *Schema, user *User) {
+				WithSchema(schema, Value("name", &user.Name, WithValidators(Required())))
+				WithSchema(schema, Value("age", &user.Age, WithValidators(Required())))
+			})),
+		)
+
+		jsonData := `{"user": {"name": "test", "age": 20}}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		if user.Name != "test" {
+			t.Errorf("Schema.ApplyJSON() user.Name = %v, want %v", user.Name, "test")
+		}
+		if user.Age != 20 {
+			t.Errorf("Schema.ApplyJSON() user.Age = %v, want %v", user.Age, 20)
+		}
+	}
+}
+
+func TestPoxxy_Complex(t *testing.T) {
+	type House struct {
+		Address    string
+		Price      int
+		Rooms      []string
+		Properties map[string]string
+	}
+
+	type User struct {
+		House1 House
+		House2 *House
+	}
+
+	var user User
+	schema := NewSchema(
+		Struct("user", &user, WithValidators(Required()), WithSubSchema(func(schema *Schema, user *User) {
+			WithSchema(schema, Struct("house1", &user.House1, WithValidators(Required()), WithSubSchema(func(schema *Schema, house *House) {
+				WithSchema(schema, Value("address", &house.Address, WithValidators(Required())))
+				WithSchema(schema, Value("price", &house.Price, WithValidators(Required())))
+				WithSchema(schema, Slice("rooms", &house.Rooms, WithValidators(Required())))
+				WithSchema(schema, Map("properties", &house.Properties, WithValidators(Required(), WithMapKeys("color")), WithSubSchemaMap(func(ss *Schema, key string, value string) {
+					if key == "color" {
+						WithSchema(ss, ValueWithoutAssign[string](key, WithValidators(In("red", "blue", "green"))))
+					}
+				})))
+			})))
+			WithSchema(schema, Pointer("house2", &user.House2))
+		})),
+	)
+
+	jsonData := `
+	{
+		"user": {
+			"house1": {
+				"address": "123 Main St",
+				"price": 100000,
+				"rooms": [
+					"bedroom",
+					"bathroom"
+				],
+				"properties": {
+					"color": "red"
+				}
+			}
+		}
+	}
+	`
+	err := schema.ApplyJSON([]byte(jsonData))
+	if err != nil {
+		t.Errorf("Schema.ApplyJSON() error = %v", err)
+	}
+
+	if user.House1.Address != "123 Main St" {
+		t.Errorf("Schema.ApplyJSON() user.House1.Address = %v, want %v", user.House1.Address, "123 Main St")
+	}
+
+	if user.House2 != nil {
+		t.Errorf("Schema.ApplyJSON() user.House2 = %v, want %v", user.House2, nil)
+	}
+
+	if user.House1.Price != 100000 {
+		t.Errorf("Schema.ApplyJSON() user.House1.Price = %v, want %v", user.House1.Price, 100000)
+	}
+
+	if len(user.House1.Rooms) != 2 {
+		t.Errorf("Schema.ApplyJSON() user.House1.Rooms = %v, want %v", user.House1.Rooms, []string{"bedroom", "bathroom"})
+	}
+
+	if user.House1.Properties["color"] != "red" {
+		t.Errorf("Schema.ApplyJSON() user.House1.Properties = %v, want %v", user.House1.Properties, map[string]string{"color": "red"})
 	}
 }

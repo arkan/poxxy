@@ -128,7 +128,46 @@ func (s *Schema) SetFieldPresent(fieldName string) {
 	s.presentFields[fieldName] = true
 }
 
-// WithSchema helper function to add fields to a schema
 func WithSchema(schema *Schema, field Field) {
 	schema.fields = append(schema.fields, field)
+}
+
+type SubSchemaOption[T any] struct {
+	callback func(*Schema, *T)
+}
+
+type SubSchemaInterface[T any] interface {
+	SetCallback(func(*Schema, *T))
+}
+
+type SubSchemaMapInterface[K comparable, V any] interface {
+	SetCallback(func(*Schema, K, V))
+}
+
+func (o SubSchemaOption[T]) Apply(field interface{}) {
+	if f, ok := field.(SubSchemaInterface[T]); ok {
+		f.SetCallback(o.callback)
+	} else {
+		panic(fmt.Sprintf("WithSubSchema doesn't support %T", field))
+	}
+}
+
+func WithSubSchema[T any](callback func(*Schema, *T)) Option {
+	return SubSchemaOption[T]{callback: callback}
+}
+
+type SubSchemaMapOption[K comparable, V any] struct {
+	callback func(*Schema, K, V)
+}
+
+func (o SubSchemaMapOption[K, V]) Apply(field interface{}) {
+	if f, ok := field.(SubSchemaMapInterface[K, V]); ok {
+		f.SetCallback(o.callback)
+	} else {
+		panic(fmt.Sprintf("WithSubSchemaMap doesn't support %T", field))
+	}
+}
+
+func WithSubSchemaMap[K comparable, V any](callback func(*Schema, K, V)) Option {
+	return SubSchemaMapOption[K, V]{callback: callback}
 }

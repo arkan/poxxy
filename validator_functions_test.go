@@ -692,10 +692,13 @@ func TestSlice(t *testing.T) {
 		var people []Person
 
 		schema := NewSchema(
-			Slice[Person]("people", &people, func(s *Schema, p *Person) {
-				WithSchema(s, Value[string]("name", &p.Name, WithValidators(Required())))
-				WithSchema(s, Value[int]("age", &p.Age, WithValidators(Min(0))))
-			}, WithValidators(Required())),
+			Slice[Person]("people", &people,
+				WithSubSchema(func(s *Schema, p *Person) {
+					WithSchema(s, Value[string]("name", &p.Name, WithValidators(Required())))
+					WithSchema(s, Value[int]("age", &p.Age, WithValidators(Min(0))))
+				}),
+				WithValidators(Required()),
+			),
 		)
 
 		data := map[string]interface{}{
@@ -728,10 +731,13 @@ func TestSlice(t *testing.T) {
 		var people []Person
 
 		schema := NewSchema(
-			Slice[Person]("people", &people, func(s *Schema, p *Person) {
-				WithSchema(s, Value[string]("name", &p.Name, WithValidators(Required())))
-				WithSchema(s, Value[int]("age", &p.Age, WithValidators(Min(0))))
-			}),
+			Slice[Person]("people", &people,
+				WithSubSchema(func(s *Schema, p *Person) {
+					WithSchema(s, Value[string]("name", &p.Name, WithValidators(Required())))
+					WithSchema(s, Value[int]("age", &p.Age, WithValidators(Min(0))))
+				}),
+				WithValidators(MinLength(2)),
+			),
 		)
 
 		data := map[string]interface{}{
@@ -757,10 +763,13 @@ func TestSlice(t *testing.T) {
 		var people []Person
 
 		schema := NewSchema(
-			Slice[Person]("people", &people, func(s *Schema, p *Person) {
-				WithSchema(s, Value[string]("name", &p.Name, WithValidators(Required())))
-				WithSchema(s, Value[int]("age", &p.Age, WithValidators(Min(0))))
-			}, WithValidators(MinLength(2))),
+			Slice[Person]("people", &people,
+				WithSubSchema(func(s *Schema, p *Person) {
+					WithSchema(s, Value[string]("name", &p.Name, WithValidators(Required())))
+					WithSchema(s, Value[int]("age", &p.Age, WithValidators(Min(0))))
+				}),
+				WithValidators(MinLength(2)),
+			),
 		)
 
 		data := map[string]interface{}{
@@ -780,10 +789,12 @@ func TestSlice(t *testing.T) {
 		var people []Person
 
 		schema := NewSchema(
-			Slice[Person]("people", &people, func(s *Schema, p *Person) {
-				WithSchema(s, Value[string]("name", &p.Name, WithValidators(Required())))
-				WithSchema(s, Value[int]("age", &p.Age, WithValidators(Min(0))))
-			}),
+			Slice[Person]("people", &people,
+				WithSubSchema(func(s *Schema, p *Person) {
+					WithSchema(s, Value[string]("name", &p.Name, WithValidators(Required())))
+					WithSchema(s, Value[int]("age", &p.Age, WithValidators(Min(0))))
+				}),
+			),
 		)
 
 		data := map[string]interface{}{
@@ -808,10 +819,12 @@ func TestSlice(t *testing.T) {
 		var people []Person
 
 		schema := NewSchema(
-			Slice[Person]("people", &people, func(s *Schema, p *Person) {
-				WithSchema(s, Value[string]("name", &p.Name, WithValidators(Required())))
-				WithSchema(s, Value[int]("age", &p.Age, WithValidators(Min(0))))
-			}),
+			Slice[Person]("people", &people,
+				WithSubSchema(func(s *Schema, p *Person) {
+					WithSchema(s, Value[string]("name", &p.Name, WithValidators(Required())))
+					WithSchema(s, Value[int]("age", &p.Age, WithValidators(Min(0))))
+				}),
+			),
 		)
 
 		data := map[string]interface{}{

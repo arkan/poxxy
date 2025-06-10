@@ -63,18 +63,8 @@ func (f *MapField[K, V]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
 
-func WithMapCallback[K comparable, V any](callback func(*Schema, K, V)) Option {
-	return MapCallbackOption[K, V]{callback: callback}
-}
-
-type MapCallbackOption[K comparable, V any] struct {
-	callback func(*Schema, K, V)
-}
-
-func (o MapCallbackOption[K, V]) Apply(field interface{}) {
-	if f, ok := field.(*MapField[K, V]); ok {
-		f.callback = o.callback
-	}
+func (f *MapField[K, V]) SetCallback(callback func(*Schema, K, V)) {
+	f.callback = callback
 }
 
 // Map creates a map field

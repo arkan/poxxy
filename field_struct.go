@@ -6,9 +6,10 @@ import (
 
 // StructField represents a struct field with callback
 type StructField[T any] struct {
-	name     string
-	ptr      *T
-	callback func(*Schema, *T)
+	name       string
+	ptr        *T
+	callback   func(*Schema, *T)
+	Validators []Validator
 }
 
 func (f *StructField[T]) Name() string {
@@ -26,6 +27,10 @@ func (f *StructField[T]) Assign(data map[string]interface{}, schema *Schema) err
 		return fmt.Errorf("expected object for struct field")
 	}
 
+	if f.callback == nil {
+		return fmt.Errorf("callback is nil for field %s, did you forget to use WithSubSchema?", f.name)
+	}
+
 	// Create a sub-schema and let the callback define it
 	subSchema := NewSchema()
 	f.callback(subSchema, f.ptr)
@@ -35,15 +40,23 @@ func (f *StructField[T]) Assign(data map[string]interface{}, schema *Schema) err
 }
 
 func (f *StructField[T]) Validate(schema *Schema) error {
-	// Validation is done during assignment phase
-	return nil
+	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
+}
+
+func (f *StructField[T]) SetCallback(callback func(*Schema, *T)) {
+	f.callback = callback
 }
 
 // Struct creates a struct field
-func Struct[T any](name string, ptr *T, callback func(*Schema, *T)) Field {
-	return &StructField[T]{
-		name:     name,
-		ptr:      ptr,
-		callback: callback,
+func Struct[T any](name string, ptr *T, opts ...Option) Field {
+	field := &StructField[T]{
+		name: name,
+		ptr:  ptr,
 	}
+
+	for _, opt := range opts {
+		opt.Apply(field)
+	}
+
+	return field
 }

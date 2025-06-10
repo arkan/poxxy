@@ -91,12 +91,15 @@ func (f *SliceField[T]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
 
+func (f *SliceField[T]) SetCallback(callback func(*Schema, *T)) {
+	f.callback = callback
+}
+
 // Slice creates a slice field.
-func Slice[T any](name string, ptr *[]T, callback func(*Schema, *T), opts ...Option) Field {
+func Slice[T any](name string, ptr *[]T, opts ...Option) Field {
 	field := &SliceField[T]{
-		name:     name,
-		ptr:      ptr,
-		callback: callback,
+		name: name,
+		ptr:  ptr,
 	}
 
 	for _, opt := range opts {

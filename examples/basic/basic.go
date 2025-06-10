@@ -73,7 +73,7 @@ func main() {
 
 	schema := poxxy.NewSchema(
 		// 1. Pointer to struct with optional fields
-		poxxy.Struct[UserProfile]("profile", &profile, func(s *poxxy.Schema, p *UserProfile) {
+		poxxy.Struct[UserProfile]("profile", &profile, poxxy.WithSubSchema(func(s *poxxy.Schema, p *UserProfile) {
 			poxxy.WithSchema(s, poxxy.Value[string]("name", &p.Name, poxxy.WithValidators(poxxy.Required())))
 
 			// 2. Pointer to string (optional field)
@@ -85,7 +85,7 @@ func main() {
 				poxxy.WithSchema(ss, poxxy.Value[string]("city", &addr.City, poxxy.WithValidators(poxxy.Required())))
 			}))
 
-		}),
+		})),
 
 		// 4. Fixed-size array (vs slice)
 		poxxy.Array[string]("tags", &tags, poxxy.WithValidators(

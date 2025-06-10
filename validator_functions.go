@@ -296,3 +296,28 @@ func UniqueBy(keyExtractor func(interface{}) interface{}) Validator {
 		},
 	}
 }
+
+func WithMapKeys(keys ...string) Validator {
+	return ValidatorFn{
+		fn: func(value interface{}, fieldName string) error {
+			// Try to convert to map[string]string first
+			if mapData, ok := value.(map[string]string); ok {
+				for _, key := range keys {
+					if _, ok := mapData[key]; !ok {
+						return fmt.Errorf("key %v not found in map", key)
+					}
+				}
+				return nil
+			}
+			if mapData, ok := value.(map[string]interface{}); ok {
+				for _, key := range keys {
+					if _, ok := mapData[key]; !ok {
+						return fmt.Errorf("key %v not found in map", key)
+					}
+				}
+			}
+
+			return fmt.Errorf("expected map for map field")
+		},
+	}
+}
