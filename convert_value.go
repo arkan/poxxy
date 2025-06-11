@@ -1,6 +1,7 @@
 package poxxy
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -14,6 +15,16 @@ func convertValue[T any](value interface{}) (T, error) {
 	// Direct type assertion first
 	if v, ok := value.(T); ok {
 		return v, nil
+	}
+
+	// Handle sql.Null types (e.g. sql.NullString, sql.NullInt64)
+	if v, ok := any(&zero).(sql.Scanner); ok {
+		err := v.Scan(value)
+		if err != nil {
+			return zero, err
+		}
+
+		return zero, nil
 	}
 
 	// Handle string conversions

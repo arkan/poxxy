@@ -1,6 +1,7 @@
 package poxxy
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
@@ -301,5 +302,40 @@ func TestPoxxy_Complex(t *testing.T) {
 
 	if user.House1.Properties["color"] != "red" {
 		t.Errorf("Schema.ApplyJSON() user.House1.Properties = %v, want %v", user.House1.Properties, map[string]string{"color": "red"})
+	}
+}
+
+func TestPoxxy_SQLNullFields(t *testing.T) {
+	type User struct {
+		Name sql.NullString
+		Age  sql.NullInt64
+	}
+
+	var user User
+	schema := NewSchema(
+		Value("name", &user.Name, WithValidators(Required())),
+		Value("age", &user.Age, WithValidators(Required())),
+	)
+
+	jsonData := `{"name": "test", "age": 20}`
+	err := schema.ApplyJSON([]byte(jsonData))
+	if err != nil {
+		t.Errorf("Schema.ApplyJSON() error = %v", err)
+	}
+
+	if !user.Name.Valid {
+		t.Errorf("Schema.ApplyJSON() user.Name = %v, want %v", user.Name.String, "test")
+	}
+
+	if user.Name.String != "test" {
+		t.Errorf("Schema.ApplyJSON() user.Name = %v, want %v", user.Name.String, "test")
+	}
+
+	if !user.Age.Valid {
+		t.Errorf("Schema.ApplyJSON() user.Age = %v, want %v", user.Age.Int64, 20)
+	}
+
+	if user.Age.Int64 != 20 {
+		t.Errorf("Schema.ApplyJSON() user.Age = %v, want %v", user.Age.Int64, 20)
 	}
 }
