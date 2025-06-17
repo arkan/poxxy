@@ -6,14 +6,23 @@ import (
 
 // TransformField represents a field with type transformation
 type TransformField[From, To any] struct {
-	name       string
-	ptr        *To
-	transform  func(From) (To, error)
-	Validators []Validator
+	name        string
+	description string
+	ptr         *To
+	transform   func(From) (To, error)
+	Validators  []Validator
 }
 
 func (f *TransformField[From, To]) Name() string {
 	return f.name
+}
+
+func (f *TransformField[From, To]) Description() string {
+	return f.description
+}
+
+func (f *TransformField[From, To]) SetDescription(description string) {
+	f.description = description
 }
 
 func (f *TransformField[From, To]) Assign(data map[string]interface{}, schema *Schema) error {

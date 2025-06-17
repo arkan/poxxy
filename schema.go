@@ -95,7 +95,7 @@ func (s *Schema) Apply(data map[string]interface{}) error {
 	// First pass: assign values
 	for _, field := range s.fields {
 		if err := field.Assign(data, s); err != nil {
-			errors = append(errors, FieldError{Field: field.Name(), Error: err})
+			errors = append(errors, FieldError{Field: field.Name(), Error: err, Description: field.Description()})
 		}
 	}
 
@@ -107,7 +107,7 @@ func (s *Schema) Apply(data map[string]interface{}) error {
 	// Second pass: validate
 	for _, field := range s.fields {
 		if err := field.Validate(s); err != nil {
-			errors = append(errors, FieldError{Field: field.Name(), Error: err})
+			errors = append(errors, FieldError{Field: field.Name(), Error: err, Description: field.Description()})
 		}
 	}
 

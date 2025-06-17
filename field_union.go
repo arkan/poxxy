@@ -7,13 +7,22 @@ import (
 
 // UnionField represents a union/polymorphic field
 type UnionField struct {
-	name     string
-	ptr      interface{}
-	resolver func(map[string]interface{}) (interface{}, error)
+	name        string
+	description string
+	ptr         interface{}
+	resolver    func(map[string]interface{}) (interface{}, error)
 }
 
 func (f *UnionField) Name() string {
 	return f.name
+}
+
+func (f *UnionField) Description() string {
+	return f.description
+}
+
+func (f *UnionField) SetDescription(description string) {
+	f.description = description
 }
 
 func (f *UnionField) Assign(data map[string]interface{}, schema *Schema) error {

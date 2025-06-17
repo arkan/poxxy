@@ -174,3 +174,24 @@ func TestSchema_ApplyJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestSchema_ApplyWithDescription(t *testing.T) {
+	var name string
+	schema := NewSchema(
+		Value("name", &name, WithValidators(Required(), MinLength(10)), WithDescription("name description")),
+	)
+	err := schema.ApplyJSON([]byte(`{"name": "test"}`))
+	if err == nil {
+		t.Errorf("Schema.ApplyJSON() expected an error, but got %v", err)
+	}
+	errs, ok := err.(Errors)
+	if !ok {
+		t.Errorf("Schema.ApplyJSON() expected an Errors, but got %v", err)
+	}
+	if len(errs) != 1 {
+		t.Errorf("Schema.ApplyJSON() expected 1 error, but got %v", len(errs))
+	}
+	if errs[0].Description != "name description" {
+		t.Errorf("Schema.ApplyJSON() expected error description to be %v, but got %v", "name description", errs[0].Description)
+	}
+}

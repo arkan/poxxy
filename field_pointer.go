@@ -6,14 +6,23 @@ import (
 
 // PointerField represents a pointer field
 type PointerField[T any] struct {
-	name       string
-	ptr        **T
-	Validators []Validator
-	callback   func(*Schema, *T)
+	name        string
+	description string
+	ptr         **T
+	Validators  []Validator
+	callback    func(*Schema, *T)
 }
 
 func (f *PointerField[T]) Name() string {
 	return f.name
+}
+
+func (f *PointerField[T]) Description() string {
+	return f.description
+}
+
+func (f *PointerField[T]) SetDescription(description string) {
+	f.description = description
 }
 
 func (f *PointerField[T]) Assign(data map[string]interface{}, schema *Schema) error {

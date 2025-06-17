@@ -6,13 +6,22 @@ import (
 
 // ValueWithoutAssignField represents a field that validates a direct value
 type ValueWithoutAssignField[T any] struct {
-	name       string
-	value      interface{}
-	Validators []Validator
+	name        string
+	description string
+	value       interface{}
+	Validators  []Validator
 }
 
 func (f *ValueWithoutAssignField[T]) Name() string {
 	return f.name
+}
+
+func (f *ValueWithoutAssignField[T]) Description() string {
+	return f.description
+}
+
+func (f *ValueWithoutAssignField[T]) SetDescription(description string) {
+	f.description = description
 }
 
 func (f *ValueWithoutAssignField[T]) Assign(data map[string]interface{}, schema *Schema) error {

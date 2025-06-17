@@ -6,14 +6,23 @@ import (
 
 // MapField represents a map field
 type MapField[K comparable, V any] struct {
-	name       string
-	ptr        *map[K]V
-	callback   func(*Schema, K, V)
-	Validators []Validator
+	name        string
+	description string
+	ptr         *map[K]V
+	callback    func(*Schema, K, V)
+	Validators  []Validator
 }
 
 func (f *MapField[K, V]) Name() string {
 	return f.name
+}
+
+func (f *MapField[K, V]) Description() string {
+	return f.description
+}
+
+func (f *MapField[K, V]) SetDescription(description string) {
+	f.description = description
 }
 
 func (f *MapField[K, V]) Assign(data map[string]interface{}, schema *Schema) error {

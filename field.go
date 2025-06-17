@@ -4,8 +4,9 @@ import "fmt"
 
 // FieldError represents a validation error for a specific field
 type FieldError struct {
-	Field string
-	Error error
+	Field       string
+	Description string
+	Error       error
 }
 
 // Errors represents multiple validation errors
@@ -27,9 +28,23 @@ func (e Errors) Error() string {
 	return result
 }
 
+type DescriptionOption struct {
+	description string
+}
+
+func (o DescriptionOption) Apply(field interface{}) {
+	field.(Field).SetDescription(o.description)
+}
+
+func WithDescription(description string) Option {
+	return DescriptionOption{description: description}
+}
+
 // Field represents a field definition in a schema
 type Field interface {
 	Name() string
+	Description() string
+	SetDescription(description string)
 	Assign(data map[string]interface{}, schema *Schema) error
 	Validate(schema *Schema) error
 }

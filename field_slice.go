@@ -7,14 +7,23 @@ import (
 
 // SliceField represents a slice field where each element is a struct
 type SliceField[T any] struct {
-	name       string
-	ptr        *[]T
-	callback   func(*Schema, *T)
-	Validators []Validator
+	name        string
+	description string
+	ptr         *[]T
+	callback    func(*Schema, *T)
+	Validators  []Validator
 }
 
 func (f *SliceField[T]) Name() string {
 	return f.name
+}
+
+func (f *SliceField[T]) Description() string {
+	return f.description
+}
+
+func (f *SliceField[T]) SetDescription(description string) {
+	f.description = description
 }
 
 func (f *SliceField[T]) Assign(data map[string]interface{}, schema *Schema) error {

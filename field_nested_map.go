@@ -6,13 +6,22 @@ import (
 
 // NestedMapField represents a nested map field
 type NestedMapField[K comparable, V any] struct {
-	name     string
-	ptr      *map[K]V
-	callback func(*Schema, K, *V)
+	name        string
+	description string
+	ptr         *map[K]V
+	callback    func(*Schema, K, *V)
 }
 
 func (f *NestedMapField[K, V]) Name() string {
 	return f.name
+}
+
+func (f *NestedMapField[K, V]) Description() string {
+	return f.description
+}
+
+func (f *NestedMapField[K, V]) SetDescription(description string) {
+	f.description = description
 }
 
 func (f *NestedMapField[K, V]) Assign(data map[string]interface{}, schema *Schema) error {

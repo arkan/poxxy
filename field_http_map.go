@@ -8,14 +8,23 @@ import (
 
 // HTTPMapField represents a map field where each value is a struct
 type HTTPMapField[K comparable, V any] struct {
-	name       string
-	ptr        *map[K]V
-	callback   func(*Schema, *V)
-	Validators []Validator
+	name        string
+	description string
+	ptr         *map[K]V
+	callback    func(*Schema, *V)
+	Validators  []Validator
 }
 
 func (f *HTTPMapField[K, V]) Name() string {
 	return f.name
+}
+
+func (f *HTTPMapField[K, V]) Description() string {
+	return f.description
+}
+
+func (f *HTTPMapField[K, V]) SetDescription(description string) {
+	f.description = description
 }
 
 func (f *HTTPMapField[K, V]) Assign(data map[string]interface{}, schema *Schema) error {

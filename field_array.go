@@ -7,13 +7,22 @@ import (
 
 // ArrayField represents an array field
 type ArrayField[T any] struct {
-	name       string
-	ptr        interface{} // *[N]T
-	Validators []Validator
+	name        string
+	description string
+	ptr         interface{} // *[N]T
+	Validators  []Validator
 }
 
 func (f *ArrayField[T]) Name() string {
 	return f.name
+}
+
+func (f *ArrayField[T]) Description() string {
+	return f.description
+}
+
+func (f *ArrayField[T]) SetDescription(description string) {
+	f.description = description
 }
 
 func (f *ArrayField[T]) Assign(data map[string]interface{}, schema *Schema) error {

@@ -4,13 +4,22 @@ import "fmt"
 
 // ValueField represents a basic value field
 type ValueField[T any] struct {
-	name       string
-	ptr        *T
-	Validators []Validator
+	name        string
+	description string
+	ptr         *T
+	Validators  []Validator
 }
 
 func (f *ValueField[T]) Name() string {
 	return f.name
+}
+
+func (f *ValueField[T]) Description() string {
+	return f.description
+}
+
+func (f *ValueField[T]) SetDescription(description string) {
+	f.description = description
 }
 
 func (f *ValueField[T]) Assign(data map[string]interface{}, schema *Schema) error {

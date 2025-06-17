@@ -6,14 +6,23 @@ import (
 
 // StructField represents a struct field with callback
 type StructField[T any] struct {
-	name       string
-	ptr        *T
-	callback   func(*Schema, *T)
-	Validators []Validator
+	name        string
+	description string
+	ptr         *T
+	callback    func(*Schema, *T)
+	Validators  []Validator
 }
 
 func (f *StructField[T]) Name() string {
 	return f.name
+}
+
+func (f *StructField[T]) Description() string {
+	return f.description
+}
+
+func (f *StructField[T]) SetDescription(description string) {
+	f.description = description
 }
 
 func (f *StructField[T]) Assign(data map[string]interface{}, schema *Schema) error {
