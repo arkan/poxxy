@@ -1,6 +1,7 @@
 package poxxy
 
 import (
+	"database/sql"
 	"strings"
 	"testing"
 )
@@ -176,6 +177,36 @@ func TestMin(t *testing.T) {
 			t.Error("Expected error for float below min, got nil")
 		}
 	})
+
+	t.Run("driver.Valuer", func(t *testing.T) {
+		v := sql.NullFloat64{
+			Float64: 50,
+			Valid:   true,
+		}
+		validator := Min(float64(100))
+		err := validator.Validate(v, "value")
+		if err == nil {
+			t.Errorf("Expected error for driver.Valuer, got: %v", err)
+		}
+		if err.Error() != "value must be at least 100.000000" {
+			t.Errorf("Expected error for driver.Valuer, got: %v", err)
+		}
+	})
+
+	t.Run("driver.Valuer with mismatched type (float64 and int)", func(t *testing.T) {
+		v := sql.NullFloat64{
+			Float64: 50,
+			Valid:   true,
+		}
+		validator := Min(100)
+		err := validator.Validate(v, "value")
+		if err == nil {
+			t.Errorf("Expected error for driver.Valuer, got: %v", err)
+		}
+		if err.Error() != "value must be a int type" {
+			t.Errorf("Expected error for driver.Valuer, got: %v", err)
+		}
+	})
 }
 
 func TestMax(t *testing.T) {
@@ -217,6 +248,36 @@ func TestMax(t *testing.T) {
 		err := floatValidator.Validate(150.5, "value")
 		if err == nil {
 			t.Error("Expected error for float above max, got nil")
+		}
+	})
+
+	t.Run("driver.Valuer", func(t *testing.T) {
+		v := sql.NullInt64{
+			Int64: 150,
+			Valid: true,
+		}
+		validator := Max(int64(100))
+		err := validator.Validate(v, "value")
+		if err == nil {
+			t.Errorf("Expected error for driver.Valuer, got: %v", err)
+		}
+		if err.Error() != "value must be at most 100" {
+			t.Errorf("Expected error for driver.Valuer, got: %v", err)
+		}
+	})
+
+	t.Run("driver.Valuer with mismatched type (float64 and int)", func(t *testing.T) {
+		v := sql.NullFloat64{
+			Float64: 100,
+			Valid:   true,
+		}
+		validator := Max(50)
+		err := validator.Validate(v, "value")
+		if err == nil {
+			t.Errorf("Expected error for driver.Valuer, got: %v", err)
+		}
+		if err.Error() != "value must be a int type and not a float64 type" {
+			t.Errorf("Expected error for driver.Valuer, got: %v", err)
 		}
 	})
 }

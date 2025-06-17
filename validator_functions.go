@@ -1,6 +1,7 @@
 package poxxy
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -44,6 +45,15 @@ func NonZero() Validator {
 		fn: func(value interface{}, fieldName string) error {
 			if value == nil {
 				return fmt.Errorf("value cannot be zero")
+			}
+
+			// Handle driver.Valuer
+			if valuer, ok := value.(driver.Valuer); ok {
+				vv, err := valuer.Value()
+				if err != nil {
+					return fmt.Errorf("error getting value from driver.Valuer: %w", err)
+				}
+				value = vv
 			}
 
 			// Check for zero values
@@ -97,15 +107,38 @@ func Email() Validator {
 func Min(min interface{}) Validator {
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
-			switch v := value.(type) {
-			case int:
-				if minInt, ok := min.(int); ok && v < minInt {
-					return fmt.Errorf("value must be at least %d", minInt)
+			// Handle driver.Valuer
+			if valuer, ok := value.(driver.Valuer); ok {
+				vv, err := valuer.Value()
+				if err != nil {
+					return fmt.Errorf("error getting value from driver.Valuer: %w", err)
 				}
-			case float64:
-				if minFloat, ok := min.(float64); ok && v < minFloat {
-					return fmt.Errorf("value must be at least %f", minFloat)
+				value = vv
+			}
+
+			v := reflect.ValueOf(value)
+			m := reflect.ValueOf(min)
+
+			if m.Kind() != v.Kind() {
+				return fmt.Errorf("value must be a %T type", min)
+			}
+
+			// Only handle numeric types
+			switch v.Kind() {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				if v.Int() < m.Convert(v.Type()).Int() {
+					return fmt.Errorf("value must be at least %d", m.Int())
 				}
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				if v.Uint() < m.Convert(v.Type()).Uint() {
+					return fmt.Errorf("value must be at least %d", m.Uint())
+				}
+			case reflect.Float32, reflect.Float64:
+				if v.Float() < m.Convert(v.Type()).Float() {
+					return fmt.Errorf("value must be at least %f", m.Float())
+				}
+			default:
+				return fmt.Errorf("value must be a numeric type")
 			}
 			return nil
 		},
@@ -116,15 +149,38 @@ func Min(min interface{}) Validator {
 func Max(max interface{}) Validator {
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
-			switch v := value.(type) {
-			case int:
-				if maxInt, ok := max.(int); ok && v > maxInt {
-					return fmt.Errorf("value must be at most %d", maxInt)
+			// Handle driver.Valuer
+			if valuer, ok := value.(driver.Valuer); ok {
+				vv, err := valuer.Value()
+				if err != nil {
+					return fmt.Errorf("error getting value from driver.Valuer for: %w", err)
 				}
-			case float64:
-				if maxFloat, ok := max.(float64); ok && v > maxFloat {
-					return fmt.Errorf("value must be at most %f", maxFloat)
+				value = vv
+			}
+
+			v := reflect.ValueOf(value)
+			m := reflect.ValueOf(max)
+
+			if m.Kind() != v.Kind() {
+				return fmt.Errorf("value must be a %T type and not a %T type", max, value)
+			}
+
+			// Only handle numeric types
+			switch v.Kind() {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				if v.Int() > m.Convert(v.Type()).Int() {
+					return fmt.Errorf("value must be at most %d", m.Int())
 				}
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				if v.Uint() > m.Convert(v.Type()).Uint() {
+					return fmt.Errorf("value must be at most %d", m.Uint())
+				}
+			case reflect.Float32, reflect.Float64:
+				if v.Float() > m.Convert(v.Type()).Float() {
+					return fmt.Errorf("value must be at most %f", m.Float())
+				}
+			default:
+				return fmt.Errorf("value must be a numeric type")
 			}
 			return nil
 		},
