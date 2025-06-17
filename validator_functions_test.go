@@ -462,6 +462,33 @@ func TestIn(t *testing.T) {
 			t.Error("Expected number 4 to be invalid, got no error")
 		}
 	})
+
+	t.Run("driver.Valuer", func(t *testing.T) {
+		v := sql.NullInt64{
+			Int64: 2,
+			Valid: true,
+		}
+		validator := In(int64(1), int64(2), int64(3))
+		err := validator.Validate(v, "number")
+		if err != nil {
+			t.Errorf("Expected no error for driver.Valuer, got: %v", err)
+		}
+	})
+
+	t.Run("driver.Valuer with mismatched type (float64 and int)", func(t *testing.T) {
+		v := sql.NullFloat64{
+			Float64: 2.5,
+			Valid:   true,
+		}
+		validator := In(1, 2, 3)
+		err := validator.Validate(v, "number")
+		if err == nil {
+			t.Errorf("Expected error for driver.Valuer, got: %v", err)
+		}
+		if err.Error() != "value must be one of: [1 2 3]" {
+			t.Errorf("Expected error for driver.Valuer, got: %v", err)
+		}
+	})
 }
 
 func TestEach(t *testing.T) {

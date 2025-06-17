@@ -260,10 +260,21 @@ func In(values ...interface{}) Validator {
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
 			for _, v := range values {
+				// If value is a driver.Valuer, get the value from it
+				if valuer, ok := value.(driver.Valuer); ok {
+					vv, err := valuer.Value()
+					if err != nil {
+						return fmt.Errorf("error getting value from driver.Valuer for: %w", err)
+					}
+					value = vv
+				}
+
+				// We compare the 2 values using reflect.DeepEqual
 				if reflect.DeepEqual(value, v) {
 					return nil
 				}
 			}
+
 			return fmt.Errorf("value must be one of: %v", values)
 		},
 	}
