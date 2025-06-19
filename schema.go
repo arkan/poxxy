@@ -13,9 +13,10 @@ const MaxBodySize = 5 << 20 // 5MB limit
 
 // Schema represents a validation schema
 type Schema struct {
-	fields        []Field
-	data          map[string]interface{}
-	presentFields map[string]bool // Track which fields were present in input data
+	fields         []Field
+	data           map[string]interface{}
+	presentFields  map[string]bool // Track which fields were present in input data
+	skipValidators bool
 }
 
 // NewSchema creates a new schema with the given fields
@@ -26,10 +27,18 @@ func NewSchema(fields ...Field) *Schema {
 	}
 }
 
+type SchemaOption func(*Schema)
+
+func WithSkipValidators(skipValidators bool) SchemaOption {
+	return func(s *Schema) {
+		s.skipValidators = skipValidators
+	}
+}
+
 // ApplyHTTPRequest assigns data from an HTTP request to a schema
 // It supports application/json and application/x-www-form-urlencoded
 // It will return an error if the content type is not supported
-func (s *Schema) ApplyHTTPRequest(r *http.Request) error {
+func (s *Schema) ApplyHTTPRequest(r *http.Request, options ...SchemaOption) error {
 	contentType := r.Header.Get("Content-Type")
 	switch contentType {
 	case "application/json":
@@ -42,7 +51,7 @@ func (s *Schema) ApplyHTTPRequest(r *http.Request) error {
 		if err := json.Unmarshal(body, &data); err != nil {
 			return fmt.Errorf("failed to unmarshal request body: %w", err)
 		}
-		return s.Apply(data)
+		return s.Apply(data, options...)
 	case "application/x-www-form-urlencoded":
 		if err := r.ParseForm(); err != nil {
 			return fmt.Errorf("failed to parse form: %w", err)
@@ -58,32 +67,37 @@ func (s *Schema) ApplyHTTPRequest(r *http.Request) error {
 			form[key] = values[0]
 		}
 
-		return s.Apply(form)
+		return s.Apply(form, options...)
 	default:
 		// We parse request url query params
 		params := make(map[string]interface{})
 		for key, values := range r.URL.Query() {
 			params[key] = values[0]
 		}
-		return s.Apply(params)
+		return s.Apply(params, options...)
 	}
 }
 
 // ApplyJSON assigns data from a JSON string to a schema
-func (s *Schema) ApplyJSON(jsonData []byte) error {
+func (s *Schema) ApplyJSON(jsonData []byte, options ...SchemaOption) error {
 	var data map[string]interface{}
 
 	if err := json.Unmarshal(jsonData, &data); err != nil {
 		return fmt.Errorf("failed to unmarshal request body: %w", err)
 	}
 
-	return s.Apply(data)
+	return s.Apply(data, options...)
 }
 
 // Apply assigns data to variables and validates them
-func (s *Schema) Apply(data map[string]interface{}) error {
+func (s *Schema) Apply(data map[string]interface{}, options ...SchemaOption) error {
 	s.data = data
 	s.presentFields = make(map[string]bool)
+
+	// Apply options to the schema
+	for _, option := range options {
+		option(s)
+	}
 
 	// Track which top-level fields are present
 	for key := range data {
@@ -102,6 +116,11 @@ func (s *Schema) Apply(data map[string]interface{}) error {
 	// If there are any errors, return them
 	if len(errors) > 0 {
 		return errors
+	}
+
+	// If we skip validators, we return nil
+	if s.skipValidators {
+		return nil
 	}
 
 	// Second pass: validate
