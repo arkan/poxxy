@@ -91,6 +91,15 @@ func Email() Validator {
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
+			// Handle driver.Valuer
+			if valuer, ok := value.(driver.Valuer); ok {
+				vv, err := valuer.Value()
+				if err != nil {
+					return fmt.Errorf("error getting value from driver.Valuer for: %w", err)
+				}
+				value = vv
+			}
+
 			str, ok := value.(string)
 			if !ok {
 				return fmt.Errorf("email validation requires string value")
@@ -191,6 +200,14 @@ func Max(max interface{}) Validator {
 func MinLength(minLen int) Validator {
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
+			if valuer, ok := value.(driver.Valuer); ok {
+				vv, err := valuer.Value()
+				if err != nil {
+					return fmt.Errorf("error getting value from driver.Valuer for: %w", err)
+				}
+				value = vv
+			}
+
 			v := reflect.ValueOf(value)
 			switch v.Kind() {
 			case reflect.String:
@@ -211,6 +228,14 @@ func MinLength(minLen int) Validator {
 func MaxLength(maxLen int) Validator {
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
+			if valuer, ok := value.(driver.Valuer); ok {
+				vv, err := valuer.Value()
+				if err != nil {
+					return fmt.Errorf("error getting value from driver.Valuer for: %w", err)
+				}
+				value = vv
+			}
+
 			v := reflect.ValueOf(value)
 			switch v.Kind() {
 			case reflect.String:
@@ -231,6 +256,14 @@ func MaxLength(maxLen int) Validator {
 func URL() Validator {
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
+			if valuer, ok := value.(driver.Valuer); ok {
+				vv, err := valuer.Value()
+				if err != nil {
+					return fmt.Errorf("error getting value from driver.Valuer for: %w", err)
+				}
+				value = vv
+			}
+
 			str, ok := value.(string)
 			if !ok {
 				return fmt.Errorf("URL validation requires string value")
