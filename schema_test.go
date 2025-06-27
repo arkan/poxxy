@@ -237,6 +237,34 @@ func TestSchema_ApplyWithTransform(t *testing.T) {
 		}
 	})
 
+	t.Run("apply with nil values", func(t *testing.T) {
+		var name string
+		var age int
+		schema := NewSchema(
+			Value("name", &name, WithValidators(Required())),
+			Value("age", &age, WithValidators(Required())),
+		)
+		err := schema.Apply(map[string]interface{}{"name": nil, "age": nil})
+		if err == nil {
+			t.Errorf("Schema.Apply() expected an error, but got %v", err)
+		}
+		errs, ok := err.(Errors)
+		if !ok {
+			t.Errorf("Schema.Apply() expected an Errors, but got %v", err)
+		}
+		if len(errs) != 2 {
+			t.Errorf("Schema.Apply() expected 2 errors, but got %v", len(errs))
+		} else {
+			if errs[0].Error.Error() != "field is required" {
+				t.Errorf("Schema.Apply() field name %q expected error to be %v, but got %v", errs[0].Field, "field is required", errs[0].Error.Error())
+			}
+
+			if errs[1].Error.Error() != "field is required" {
+				t.Errorf("Schema.Apply() expected error to be %v, but got %v", "field is required", errs[1].Error.Error())
+			}
+		}
+	})
+
 	t.Run("transform with custom validator", func(t *testing.T) {
 		var timestamp time.Time
 		var normalizedEmail string

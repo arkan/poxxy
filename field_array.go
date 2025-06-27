@@ -11,10 +11,21 @@ type ArrayField[T any] struct {
 	description string
 	ptr         interface{} // *[N]T
 	Validators  []Validator
+	wasAssigned bool // Track if a non-nil value was assigned
 }
 
 func (f *ArrayField[T]) Name() string {
 	return f.name
+}
+
+func (f *ArrayField[T]) Value() interface{} {
+	if f.ptr == nil {
+		return nil
+	}
+	if !f.wasAssigned {
+		return nil
+	}
+	return f.ptr
 }
 
 func (f *ArrayField[T]) Description() string {
@@ -28,6 +39,13 @@ func (f *ArrayField[T]) SetDescription(description string) {
 func (f *ArrayField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
+		return nil
+	}
+
+	schema.SetFieldPresent(f.name)
+
+	if value == nil {
+		f.wasAssigned = false
 		return nil
 	}
 
@@ -63,6 +81,7 @@ func (f *ArrayField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 		arrayValue.Index(i).Set(reflect.ValueOf(converted))
 	}
 
+	f.wasAssigned = true
 	return nil
 }
 

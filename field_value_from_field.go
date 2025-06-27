@@ -10,6 +10,7 @@ type ValueWithoutAssignField[T any] struct {
 	description string
 	value       interface{}
 	Validators  []Validator
+	wasAssigned bool // Track if a non-nil value was assigned
 }
 
 func (f *ValueWithoutAssignField[T]) Name() string {
@@ -24,9 +25,26 @@ func (f *ValueWithoutAssignField[T]) SetDescription(description string) {
 	f.description = description
 }
 
+func (f *ValueWithoutAssignField[T]) Value() interface{} {
+	if f.value == nil {
+		return nil
+	}
+	if !f.wasAssigned {
+		return nil
+	}
+	return f.value
+}
+
 func (f *ValueWithoutAssignField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
+		return nil
+	}
+
+	schema.SetFieldPresent(f.name)
+
+	if value == nil {
+		f.wasAssigned = false
 		return nil
 	}
 
@@ -36,7 +54,7 @@ func (f *ValueWithoutAssignField[T]) Assign(data map[string]interface{}, schema 
 	}
 
 	f.value = converted
-
+	f.wasAssigned = true
 	return nil
 }
 

@@ -256,3 +256,87 @@ func TestConvertValue(t *testing.T) {
 		})
 	}
 }
+
+func TestWasAssignedMechanism_AllFieldTypes(t *testing.T) {
+	t.Run("ValueField nil triggers required", func(t *testing.T) {
+		var v string
+		schema := NewSchema(Value("foo", &v, WithValidators(Required())))
+		err := schema.Apply(map[string]interface{}{"foo": nil})
+		if err == nil || err.Error() != "foo: field is required" {
+			t.Errorf("expected required error, got %v", err)
+		}
+	})
+
+	t.Run("SliceField nil triggers required", func(t *testing.T) {
+		var v []string
+		schema := NewSchema(Slice("foo", &v, WithValidators(Required())))
+		err := schema.Apply(map[string]interface{}{"foo": nil})
+		if err == nil || err.Error() != "foo: field is required" {
+			t.Errorf("expected required error, got %v", err)
+		}
+	})
+
+	t.Run("ArrayField nil triggers required", func(t *testing.T) {
+		var v [2]string
+		schema := NewSchema(Array[string]("foo", &v, WithValidators(Required())))
+		err := schema.Apply(map[string]interface{}{"foo": nil})
+		if err == nil || err.Error() != "foo: field is required" {
+			t.Errorf("expected required error, got %v", err)
+		}
+	})
+
+	t.Run("PointerField nil triggers required", func(t *testing.T) {
+		var v *string
+		schema := NewSchema(Pointer("foo", &v, WithValidators(Required())))
+		err := schema.Apply(map[string]interface{}{"foo": nil})
+		if err == nil || err.Error() != "foo: field is required" {
+			t.Errorf("expected required error, got %v", err)
+		}
+	})
+
+	t.Run("StructField nil triggers required", func(t *testing.T) {
+		type S struct{ X string }
+		var v S
+		schema := NewSchema(Struct("foo", &v, WithValidators(Required()), WithSubSchema(func(s *Schema, v *S) {})))
+		err := schema.Apply(map[string]interface{}{"foo": nil})
+		if err == nil || err.Error() != "foo: field is required" {
+			t.Errorf("expected required error, got %v", err)
+		}
+	})
+
+	t.Run("MapField nil triggers required", func(t *testing.T) {
+		var v map[string]string
+		schema := NewSchema(Map("foo", &v, WithValidators(Required())))
+		err := schema.Apply(map[string]interface{}{"foo": nil})
+		if err == nil || err.Error() != "foo: field is required" {
+			t.Errorf("expected required error, got %v", err)
+		}
+	})
+
+	t.Run("TransformField nil triggers required", func(t *testing.T) {
+		var v int
+		schema := NewSchema(Transform[string, int]("foo", &v, func(s string) (int, error) { return 0, nil }, WithValidators(Required())))
+		err := schema.Apply(map[string]interface{}{"foo": nil})
+		if err == nil || err.Error() != "foo: field is required" {
+			t.Errorf("expected required error, got %v", err)
+		}
+	})
+
+	t.Run("ValueWithoutAssignField nil triggers required", func(t *testing.T) {
+		field := ValueWithoutAssign[string]("foo", WithValidators(Required()))
+		schema := NewSchema(field)
+		err := schema.Apply(map[string]interface{}{"foo": nil})
+		if err == nil || err.Error() != "foo: field is required" {
+			t.Errorf("expected required error, got %v", err)
+		}
+	})
+
+	t.Run("NestedMapField nil triggers required", func(t *testing.T) {
+		var v map[string]string
+		schema := NewSchema(NestedMap("foo", &v, func(s *Schema, k string, v *string) {}), Value("foo", &v, WithValidators(Required())))
+		err := schema.Apply(map[string]interface{}{"foo": nil})
+		if err == nil {
+			t.Errorf("expected required error, got %v", err)
+		}
+	})
+}

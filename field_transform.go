@@ -11,6 +11,7 @@ type TransformField[From, To any] struct {
 	ptr         *To
 	transform   func(From) (To, error)
 	Validators  []Validator
+	wasAssigned bool // Track if a non-nil value was assigned
 }
 
 func (f *TransformField[From, To]) Name() string {
@@ -25,25 +26,41 @@ func (f *TransformField[From, To]) SetDescription(description string) {
 	f.description = description
 }
 
+func (f *TransformField[From, To]) Value() interface{} {
+	if f.ptr == nil {
+		return nil
+	}
+	if !f.wasAssigned {
+		return nil
+	}
+	return *f.ptr
+}
+
 func (f *TransformField[From, To]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
 		return nil
 	}
 
-	// Convert to From type first
-	fromValue, err := convertValue[From](value)
-	if err != nil {
-		return fmt.Errorf("transform source conversion failed: %v", err)
+	schema.SetFieldPresent(f.name)
+
+	if value == nil {
+		f.wasAssigned = false
+		return nil
 	}
 
-	// Apply transformation
+	fromValue, err := convertValue[From](value)
+	if err != nil {
+		return fmt.Errorf("type conversion failed: %v", err)
+	}
+
 	toValue, err := f.transform(fromValue)
 	if err != nil {
-		return fmt.Errorf("transformation failed: %v", err)
+		return fmt.Errorf("transform failed: %v", err)
 	}
 
 	*f.ptr = toValue
+	f.wasAssigned = true
 	return nil
 }
 

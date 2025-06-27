@@ -13,10 +13,21 @@ type HTTPMapField[K comparable, V any] struct {
 	ptr         *map[K]V
 	callback    func(*Schema, *V)
 	Validators  []Validator
+	wasAssigned bool // Track if a non-nil value was assigned
 }
 
 func (f *HTTPMapField[K, V]) Name() string {
 	return f.name
+}
+
+func (f *HTTPMapField[K, V]) Value() interface{} {
+	if f.ptr == nil {
+		return nil
+	}
+	if !f.wasAssigned {
+		return nil
+	}
+	return *f.ptr
 }
 
 func (f *HTTPMapField[K, V]) Description() string {
@@ -34,6 +45,9 @@ func (f *HTTPMapField[K, V]) Assign(data map[string]interface{}, schema *Schema)
 	formData := parseFormCollection(values, f.name)
 	if len(formData) > 0 {
 		schema.SetFieldPresent(f.name)
+		f.wasAssigned = true
+	} else {
+		f.wasAssigned = false
 	}
 
 	for key, value := range formData {

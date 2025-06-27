@@ -43,6 +43,7 @@ func WithDescription(description string) Option {
 // Field represents a field definition in a schema
 type Field interface {
 	Name() string
+	Value() interface{}
 	Description() string
 	SetDescription(description string)
 	Assign(data map[string]interface{}, schema *Schema) error

@@ -11,10 +11,21 @@ type StructField[T any] struct {
 	ptr         *T
 	callback    func(*Schema, *T)
 	Validators  []Validator
+	wasAssigned bool // Track if a non-nil value was assigned
 }
 
 func (f *StructField[T]) Name() string {
 	return f.name
+}
+
+func (f *StructField[T]) Value() interface{} {
+	if f.ptr == nil {
+		return nil
+	}
+	if !f.wasAssigned {
+		return nil
+	}
+	return *f.ptr
 }
 
 func (f *StructField[T]) Description() string {
@@ -31,6 +42,13 @@ func (f *StructField[T]) Assign(data map[string]interface{}, schema *Schema) err
 		return nil
 	}
 
+	schema.SetFieldPresent(f.name)
+
+	if value == nil {
+		f.wasAssigned = false
+		return nil
+	}
+
 	structData, ok := value.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("expected object for struct field")
@@ -40,11 +58,10 @@ func (f *StructField[T]) Assign(data map[string]interface{}, schema *Schema) err
 		return fmt.Errorf("callback is nil for field %s, did you forget to use WithSubSchema?", f.name)
 	}
 
-	// Create a sub-schema and let the callback define it
 	subSchema := NewSchema()
 	f.callback(subSchema, f.ptr)
+	f.wasAssigned = true
 
-	// Assign and validate the struct data
 	return subSchema.Apply(structData)
 }
 

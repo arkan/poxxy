@@ -11,6 +11,7 @@ type PointerField[T any] struct {
 	ptr         **T
 	Validators  []Validator
 	callback    func(*Schema, *T)
+	wasAssigned bool // Track if a non-nil value was assigned
 }
 
 func (f *PointerField[T]) Name() string {
@@ -25,10 +26,26 @@ func (f *PointerField[T]) SetDescription(description string) {
 	f.description = description
 }
 
+func (f *PointerField[T]) Value() interface{} {
+	if f.ptr == nil {
+		return nil
+	}
+	if !f.wasAssigned {
+		return nil
+	}
+	return *f.ptr
+}
+
 func (f *PointerField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
-		// Optional field - leave as nil
+		return nil
+	}
+
+	schema.SetFieldPresent(f.name)
+
+	if value == nil {
+		f.wasAssigned = false
 		return nil
 	}
 
@@ -37,22 +54,21 @@ func (f *PointerField[T]) Assign(data map[string]interface{}, schema *Schema) er
 	*f.ptr = instance
 
 	if f.callback != nil {
-		// Handle struct pointer with callback
 		structData, ok := value.(map[string]interface{})
 		if !ok {
 			return fmt.Errorf("expected object for struct pointer field")
 		}
-
 		subSchema := NewSchema()
 		f.callback(subSchema, instance)
+		f.wasAssigned = true
 		return subSchema.Apply(structData)
 	} else {
-		// Handle simple pointer
 		converted, err := convertValue[T](value)
 		if err != nil {
 			return fmt.Errorf("pointer field conversion failed: %v", err)
 		}
 		**f.ptr = converted
+		f.wasAssigned = true
 	}
 
 	return nil

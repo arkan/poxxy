@@ -11,6 +11,7 @@ type UnionField struct {
 	description string
 	ptr         interface{}
 	resolver    func(map[string]interface{}) (interface{}, error)
+	wasAssigned bool // Track if a non-nil value was assigned
 }
 
 func (f *UnionField) Name() string {
@@ -25,9 +26,26 @@ func (f *UnionField) SetDescription(description string) {
 	f.description = description
 }
 
+func (f *UnionField) Value() interface{} {
+	if f.ptr == nil {
+		return nil
+	}
+	if !f.wasAssigned {
+		return nil
+	}
+	return f.ptr
+}
+
 func (f *UnionField) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
+		return nil
+	}
+
+	schema.SetFieldPresent(f.name)
+
+	if value == nil {
+		f.wasAssigned = false
 		return nil
 	}
 
@@ -49,6 +67,7 @@ func (f *UnionField) Assign(data map[string]interface{}, schema *Schema) error {
 	}
 
 	ptrValue.Elem().Set(reflect.ValueOf(result))
+	f.wasAssigned = true
 	return nil
 }
 

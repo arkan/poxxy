@@ -8,10 +8,21 @@ type ValueField[T any] struct {
 	description string
 	ptr         *T
 	Validators  []Validator
+	wasAssigned bool // Track if a non-nil value was assigned
 }
 
 func (f *ValueField[T]) Name() string {
 	return f.name
+}
+
+func (f *ValueField[T]) Value() interface{} {
+	if f.ptr == nil {
+		return nil
+	}
+	if !f.wasAssigned {
+		return nil
+	}
+	return *f.ptr
 }
 
 func (f *ValueField[T]) Description() string {
@@ -27,6 +38,12 @@ func (f *ValueField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 	if !exists {
 		return nil // Will be caught by Required validator if needed
 	}
+	schema.SetFieldPresent(f.name)
+
+	if value == nil {
+		f.wasAssigned = false
+		return nil
+	}
 
 	// Type conversion
 	converted, err := convertValue[T](value)
@@ -35,6 +52,7 @@ func (f *ValueField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 	}
 
 	*f.ptr = converted
+	f.wasAssigned = true
 	return nil
 }
 

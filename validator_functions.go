@@ -31,6 +31,17 @@ func (v RequiredValidator) ValidateWithSchema(schema *Schema, fieldName string) 
 		}
 		return fmt.Errorf("field is required")
 	}
+
+	// Additionally, check that the value is not empty
+	value, _ := schema.GetFieldValue(fieldName)
+	validator := NotEmpty()
+	if err := validator.Validate(value, fieldName); err != nil {
+		if v.msg != "" {
+			return fmt.Errorf("%s", v.msg)
+		}
+		return err
+	}
+
 	return nil
 }
 
@@ -39,12 +50,12 @@ func Required() Validator {
 	return RequiredValidator{}
 }
 
-// NonZero validator - rejects zero values (use this for non-zero value requirements)
-func NonZero() Validator {
+// NotEmpty validator - rejects zero values (use this for non-zero value requirements)
+func NotEmpty() Validator {
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
 			if value == nil {
-				return fmt.Errorf("value cannot be zero")
+				return fmt.Errorf("field is required")
 			}
 
 			// Handle driver.Valuer
@@ -68,17 +79,11 @@ func NonZero() Validator {
 					return fmt.Errorf("value cannot be empty")
 				}
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				if v.Int() == 0 {
-					return fmt.Errorf("value cannot be zero")
-				}
+				// We cannot refuse zero values for int types.
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				if v.Uint() == 0 {
-					return fmt.Errorf("value cannot be zero")
-				}
+				// We cannot refuse zero values for uint types.
 			case reflect.Float32, reflect.Float64:
-				if v.Float() == 0.0 {
-					return fmt.Errorf("value cannot be zero")
-				}
+				// We cannot refuse zero values for float types.
 			}
 
 			return nil

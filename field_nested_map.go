@@ -10,10 +10,21 @@ type NestedMapField[K comparable, V any] struct {
 	description string
 	ptr         *map[K]V
 	callback    func(*Schema, K, *V)
+	wasAssigned bool // Track if a non-nil value was assigned
 }
 
 func (f *NestedMapField[K, V]) Name() string {
 	return f.name
+}
+
+func (f *NestedMapField[K, V]) Value() interface{} {
+	if f.ptr == nil {
+		return nil
+	}
+	if !f.wasAssigned {
+		return nil
+	}
+	return *f.ptr
 }
 
 func (f *NestedMapField[K, V]) Description() string {
@@ -27,6 +38,13 @@ func (f *NestedMapField[K, V]) SetDescription(description string) {
 func (f *NestedMapField[K, V]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
+		return nil
+	}
+
+	schema.SetFieldPresent(f.name)
+
+	if value == nil {
+		f.wasAssigned = false
 		return nil
 	}
 
@@ -61,6 +79,7 @@ func (f *NestedMapField[K, V]) Assign(data map[string]interface{}, schema *Schem
 	}
 
 	*f.ptr = result
+	f.wasAssigned = true
 	return nil
 }
 

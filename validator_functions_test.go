@@ -45,7 +45,7 @@ func TestRequired(t *testing.T) {
 		}
 	})
 
-	t.Run("field present with empty string should pass", func(t *testing.T) {
+	t.Run("field present with empty string should fail", func(t *testing.T) {
 		var value string
 		schema := NewSchema(
 			Value("test", &value, WithValidators(Required())),
@@ -56,12 +56,12 @@ func TestRequired(t *testing.T) {
 		}
 
 		err := schema.Apply(data)
-		if err != nil {
-			t.Errorf("Expected no error when field is present with empty string, got: %v", err)
+		if err == nil {
+			t.Error("Expected error when field is present with empty string, got nil")
 		}
 
-		if value != "" {
-			t.Errorf("Expected value to be empty string, got: %v", value)
+		if !strings.Contains(err.Error(), "value cannot be empty") {
+			t.Errorf("Expected 'value cannot be empty' error, got: %v", err)
 		}
 	})
 
@@ -694,8 +694,8 @@ func TestUniqueBy(t *testing.T) {
 	})
 }
 
-func TestNonZero(t *testing.T) {
-	validator := NonZero()
+func TestNotEmpty(t *testing.T) {
+	validator := NotEmpty()
 
 	// Test cases that should pass
 	testCases := []struct {
@@ -727,9 +727,9 @@ func TestNonZero(t *testing.T) {
 	}{
 		{"nil value", nil},
 		{"empty string", ""},
-		{"zero int", 0},
-		{"zero uint", uint(0)},
-		{"zero float", 0.0},
+		// {"zero int", 0},
+		// {"zero uint", uint(0)},
+		// {"zero float", 0.0},
 		{"empty slice", []string{}},
 		{"empty map", map[string]string{}},
 	}
@@ -765,11 +765,13 @@ func TestValidatorWithMessage(t *testing.T) {
 	})
 
 	t.Run("NonZero custom error message", func(t *testing.T) {
-		validator := NonZero().WithMessage("Custom zero message")
-		err := validator.Validate(0, "field")
+		validator := NotEmpty().WithMessage("Custom zero message")
+		err := validator.Validate("", "field")
 		if err == nil {
 			t.Error("Expected error, got nil")
+			return
 		}
+
 		if err.Error() != "Custom zero message" {
 			t.Errorf("Expected 'Custom zero message', got: %s", err.Error())
 		}

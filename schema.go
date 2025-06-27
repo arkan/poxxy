@@ -138,9 +138,19 @@ func (s *Schema) Apply(data map[string]interface{}, options ...SchemaOption) err
 	return nil
 }
 
+func (s *Schema) GetFieldValue(fieldName string) (interface{}, bool) {
+	for _, field := range s.fields {
+		if f, ok := field.(Field); ok && f.Name() == fieldName {
+			return f.Value(), true
+		}
+	}
+	return nil, false
+}
+
 // IsFieldPresent checks if a field was present in the input data
 func (s *Schema) IsFieldPresent(fieldName string) bool {
-	return s.presentFields[fieldName]
+	_, exists := s.presentFields[fieldName]
+	return exists
 }
 
 func (s *Schema) SetFieldPresent(fieldName string) {

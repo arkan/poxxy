@@ -12,10 +12,21 @@ type SliceField[T any] struct {
 	ptr         *[]T
 	callback    func(*Schema, *T)
 	Validators  []Validator
+	wasAssigned bool // Track if a non-nil value was assigned
 }
 
 func (f *SliceField[T]) Name() string {
 	return f.name
+}
+
+func (f *SliceField[T]) Value() interface{} {
+	if f.ptr == nil {
+		return nil
+	}
+	if !f.wasAssigned {
+		return nil
+	}
+	return *f.ptr
 }
 
 func (f *SliceField[T]) Description() string {
@@ -32,56 +43,48 @@ func (f *SliceField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 		return nil
 	}
 
-	// Convert to slice of interface{} - handle different slice types
+	schema.SetFieldPresent(f.name)
+
+	if value == nil {
+		f.wasAssigned = false
+		return nil
+	}
+
+	// Accept []interface{}, []map[string]interface{}, or any slice/array via reflection
 	var slice []interface{}
 
 	switch v := value.(type) {
 	case []interface{}:
 		slice = v
 	case []map[string]interface{}:
-		// Convert []map[string]interface{} to []interface{}
 		slice = make([]interface{}, len(v))
 		for i, item := range v {
 			slice[i] = item
 		}
 	default:
-		// Try to use reflection to handle other slice types
 		rValue := reflect.ValueOf(value)
-		if rValue.Kind() != reflect.Slice {
+		if rValue.Kind() != reflect.Slice && rValue.Kind() != reflect.Array {
 			return fmt.Errorf("expected slice, got %T", value)
 		}
-
 		slice = make([]interface{}, rValue.Len())
 		for i := 0; i < rValue.Len(); i++ {
 			slice[i] = rValue.Index(i).Interface()
 		}
 	}
 
-	// Create result slice
 	result := make([]T, len(slice))
 
-	// Process each element
 	for i, item := range slice {
 		switch v := item.(type) {
-		// If the item is a map, we need to create a new instance for this element
-		// THis is the case when we want to map the element to a struct.
 		case map[string]interface{}:
-			// Create a new instance for this element
 			var element T
-
-			// Create a sub-schema for this element
 			subSchema := NewSchema()
-
-			// Apply the callback to define the schema for this element
 			if f.callback != nil {
 				f.callback(subSchema, &element)
 			}
-
-			// Assign and validate this element
 			if err := subSchema.Apply(v); err != nil {
 				return fmt.Errorf("element %d: %v", i, err)
 			}
-
 			result[i] = element
 		default:
 			converted, err := convertValue[T](v)
@@ -93,6 +96,7 @@ func (f *SliceField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 	}
 
 	*f.ptr = result
+	f.wasAssigned = true
 	return nil
 }
 
