@@ -268,6 +268,13 @@ func URL() Validator {
 			if !ok {
 				return fmt.Errorf("URL validation requires string value")
 			}
+
+			// If the string is empty, we consider it valid.
+			// Use the Required() validator to enforce presence.
+			if str == "" {
+				return nil
+			}
+
 			if !strings.HasPrefix(str, "http://") && !strings.HasPrefix(str, "https://") {
 				return fmt.Errorf("invalid URL format")
 			}

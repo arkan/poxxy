@@ -398,7 +398,6 @@ func TestURL(t *testing.T) {
 		"example.com",
 		"ftp://example.com",
 		"not-a-url",
-		"",
 		"http://",
 		"https://",
 	}
@@ -411,6 +410,14 @@ func TestURL(t *testing.T) {
 			}
 		})
 	}
+
+	// Test with empty string
+	t.Run("empty string", func(t *testing.T) {
+		err := validator.Validate("", "url")
+		if err != nil {
+			t.Errorf("Expected empty string to be valid, got: %v", err)
+		}
+	})
 
 	// Test non-string input
 	t.Run("non-string input", func(t *testing.T) {
