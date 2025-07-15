@@ -45,6 +45,15 @@ func (f *ValueField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 		return nil
 	}
 
+	// Handle empty string for value fields
+	if str, ok := value.(string); ok && str == "" {
+		// For empty strings, set to zero value
+		var zero T
+		*f.ptr = zero
+		f.wasAssigned = true
+		return nil
+	}
+
 	// Type conversion
 	converted, err := convertValue[T](value)
 	if err != nil {

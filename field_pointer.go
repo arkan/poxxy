@@ -49,6 +49,13 @@ func (f *PointerField[T]) Assign(data map[string]interface{}, schema *Schema) er
 		return nil
 	}
 
+	// Handle empty string for pointer fields - set to nil
+	if str, ok := value.(string); ok && str == "" {
+		*f.ptr = nil
+		f.wasAssigned = true
+		return nil
+	}
+
 	// Allocate new instance
 	instance := new(T)
 	*f.ptr = instance

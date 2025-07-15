@@ -13,15 +13,21 @@ func TestPoxxy_BasicTypes(t *testing.T) {
 	var age int
 	var isAdmin bool
 	var tags []string
+	var label *string
+	var label2 *int64
+	var label3 *int64
 
 	schema := NewSchema(
 		Value("name", &name, WithValidators(Required())),
 		Value("age", &age, WithValidators(Required())),
 		Value("isAdmin", &isAdmin, WithValidators(Required())),
 		Slice("tags", &tags, WithValidators(Required())),
+		Pointer("label", &label, WithValidators(Required())),
+		Pointer("label2", &label2),
+		Pointer("label3", &label3),
 	)
 
-	jsonData := `{"name": "test", "age": 20, "isAdmin": true, "tags": ["tag1", "tag2"]}`
+	jsonData := `{"name": "test", "age": 20, "isAdmin": true, "tags": ["tag1", "tag2"], "label": "okay", "label2": "", "label3": "0"}`
 	err := schema.ApplyJSON([]byte(jsonData))
 	if err != nil {
 		t.Errorf("Schema.ApplyJSON() error = %v", err)
@@ -38,6 +44,15 @@ func TestPoxxy_BasicTypes(t *testing.T) {
 	}
 	if len(tags) != 2 || !reflect.DeepEqual(tags, []string{"tag1", "tag2"}) {
 		t.Errorf("Schema.ApplyJSON() tags = %v, want %v", tags, []string{"tag1", "tag2"})
+	}
+	if label == nil || *label != "okay" {
+		t.Errorf("Schema.ApplyJSON() label = %v, want %v", label, "okay")
+	}
+	if label2 != nil {
+		t.Errorf("Schema.ApplyJSON() label2 = %v, want %v", label2, nil)
+	}
+	if label3 == nil || *label3 != 0 {
+		t.Errorf("Schema.ApplyJSON() label3 = %v, want %v", label3, 0)
 	}
 }
 

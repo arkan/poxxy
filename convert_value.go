@@ -16,6 +16,12 @@ func convertValue[T any](value interface{}) (T, error) {
 		return v, nil
 	}
 
+	// Handle empty string
+	if str, ok := value.(string); ok && str == "" {
+		// For empty strings, return zero value
+		return zero, nil
+	}
+
 	// Handle sql.Null types (e.g. sql.NullString, sql.NullInt64)
 	if v, ok := any(&zero).(sql.Scanner); ok {
 		err := v.Scan(value)
@@ -28,9 +34,9 @@ func convertValue[T any](value interface{}) (T, error) {
 
 	// Convert using go-convert
 	err := convert.Convert(value, &zero)
-	if err == nil {
-		return zero, nil
+	if err != nil {
+		return zero, fmt.Errorf("cannot convert %T to %T - %v", value, zero, err)
 	}
 
-	return zero, fmt.Errorf("cannot convert %T to %T", value, zero)
+	return zero, nil
 }
