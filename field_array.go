@@ -7,11 +7,14 @@ import (
 
 // ArrayField represents an array field
 type ArrayField[T any] struct {
-	name        string
-	description string
-	ptr         interface{} // *[N]T
-	Validators  []Validator
-	wasAssigned bool // Track if a non-nil value was assigned
+	name         string
+	description  string
+	ptr          interface{} // *[N]T
+	Validators   []Validator
+	wasAssigned  bool        // Track if a non-nil value was assigned
+	defaultValue interface{} // [N]T
+	hasDefault   bool
+	transformers []Transformer[interface{}]
 }
 
 func (f *ArrayField[T]) Name() string {
@@ -36,9 +39,26 @@ func (f *ArrayField[T]) SetDescription(description string) {
 	f.description = description
 }
 
+func (f *ArrayField[T]) AddTransformer(transformer Transformer[interface{}]) {
+	f.transformers = append(f.transformers, transformer)
+}
+
+func (f *ArrayField[T]) SetDefaultValue(defaultValue interface{}) {
+	f.defaultValue = defaultValue
+	f.hasDefault = true
+}
+
 func (f *ArrayField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
+		// Apply default value if available
+		if f.hasDefault {
+			ptrValue := reflect.ValueOf(f.ptr)
+			defaultValue := reflect.ValueOf(f.defaultValue)
+			ptrValue.Elem().Set(defaultValue)
+			f.wasAssigned = true
+			schema.SetFieldPresent(f.name)
+		}
 		return nil
 	}
 
@@ -79,6 +99,18 @@ func (f *ArrayField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 			return fmt.Errorf("element %d: %v", i, err)
 		}
 		arrayValue.Index(i).Set(reflect.ValueOf(converted))
+	}
+
+	// Apply transformers
+	transformed := arrayValue.Interface()
+	for _, transformer := range f.transformers {
+		var err error
+		transformed, err = transformer.Transform(transformed)
+		if err != nil {
+			return fmt.Errorf("transformer failed: %v", err)
+		}
+		// Update the array with transformed value
+		reflect.ValueOf(f.ptr).Elem().Set(reflect.ValueOf(transformed))
 	}
 
 	f.wasAssigned = true

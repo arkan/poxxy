@@ -4,11 +4,14 @@ import "fmt"
 
 // ValueField represents a basic value field
 type ValueField[T any] struct {
-	name        string
-	description string
-	ptr         *T
-	Validators  []Validator
-	wasAssigned bool // Track if a non-nil value was assigned
+	name         string
+	description  string
+	ptr          *T
+	Validators   []Validator
+	wasAssigned  bool // Track if a non-nil value was assigned
+	defaultValue T
+	hasDefault   bool
+	transformers []Transformer[T]
 }
 
 func (f *ValueField[T]) Name() string {
@@ -33,9 +36,24 @@ func (f *ValueField[T]) SetDescription(description string) {
 	f.description = description
 }
 
+func (f *ValueField[T]) AddTransformer(transformer Transformer[T]) {
+	f.transformers = append(f.transformers, transformer)
+}
+
+func (f *ValueField[T]) SetDefaultValue(defaultValue T) {
+	f.defaultValue = defaultValue
+	f.hasDefault = true
+}
+
 func (f *ValueField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
+		// Apply default value if available
+		if f.hasDefault {
+			*f.ptr = f.defaultValue
+			f.wasAssigned = true
+			schema.SetFieldPresent(f.name)
+		}
 		return nil // Will be caught by Required validator if needed
 	}
 	schema.SetFieldPresent(f.name)
@@ -60,7 +78,16 @@ func (f *ValueField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 		return fmt.Errorf("type conversion failed: %v", err)
 	}
 
-	*f.ptr = converted
+	// Apply transformers
+	transformed := converted
+	for _, transformer := range f.transformers {
+		transformed, err = transformer.Transform(transformed)
+		if err != nil {
+			return fmt.Errorf("transformer failed: %v", err)
+		}
+	}
+
+	*f.ptr = transformed
 	f.wasAssigned = true
 	return nil
 }

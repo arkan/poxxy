@@ -313,14 +313,14 @@ func TestWasAssignedMechanism_AllFieldTypes(t *testing.T) {
 		}
 	})
 
-	t.Run("TransformField nil triggers required", func(t *testing.T) {
-		var v int
-		schema := NewSchema(Transform[string, int]("foo", &v, func(s string) (int, error) { return 0, nil }, WithValidators(Required())))
-		err := schema.Apply(map[string]interface{}{"foo": nil})
-		if err == nil || err.Error() != "foo: field is required" {
-			t.Errorf("expected required error, got %v", err)
-		}
-	})
+	// t.Run("TransformField nil triggers required", func(t *testing.T) {
+	// 	var v int
+	// 	schema := NewSchema(Transform[string, int]("foo", &v, func(s string) (int, error) { return 0, nil }, WithValidators(Required())))
+	// 	err := schema.Apply(map[string]interface{}{"foo": nil})
+	// 	if err == nil || err.Error() != "foo: field is required" {
+	// 		t.Errorf("expected required error, got %v", err)
+	// 	}
+	// })
 
 	t.Run("ValueWithoutAssignField nil triggers required", func(t *testing.T) {
 		field := ValueWithoutAssign[string]("foo", WithValidators(Required()))

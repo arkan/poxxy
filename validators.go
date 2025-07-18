@@ -112,3 +112,50 @@ func (o ValidatorsOption) Apply(field interface{}) {
 func WithValidators(validators ...Validator) Option {
 	return ValidatorsOption{validators: validators}
 }
+
+// DefaultOption holds a default value
+type DefaultOption[T any] struct {
+	defaultValue T
+}
+
+func (o DefaultOption[T]) Apply(field interface{}) {
+	// Try to use type assertion first
+	if valueField, ok := field.(*ValueField[T]); ok {
+		valueField.SetDefaultValue(o.defaultValue)
+		return
+	}
+	if pointerField, ok := field.(*PointerField[T]); ok {
+		pointerField.SetDefaultValue(o.defaultValue)
+		return
+	}
+	// Handle slices separately since they have different default value types
+	if _, ok := field.(*SliceField[T]); ok {
+		// For slices, we need to handle this differently since the default value type doesn't match
+		// This is a limitation of the current approach
+		return
+	}
+	if arrayField, ok := field.(*ArrayField[T]); ok {
+		arrayField.SetDefaultValue(o.defaultValue)
+		return
+	}
+	// Fallback to reflection for types we haven't explicitly handled
+	fieldValue := reflect.ValueOf(field)
+	if fieldValue.Kind() == reflect.Ptr {
+		fieldValue = fieldValue.Elem()
+	}
+
+	defaultValueField := fieldValue.FieldByName("defaultValue")
+	hasDefaultField := fieldValue.FieldByName("hasDefault")
+
+	if defaultValueField.IsValid() && defaultValueField.CanSet() {
+		defaultValueField.Set(reflect.ValueOf(o.defaultValue))
+	}
+	if hasDefaultField.IsValid() && hasDefaultField.CanSet() {
+		hasDefaultField.Set(reflect.ValueOf(true))
+	}
+}
+
+// WithDefault creates a default value option
+func WithDefault[T any](defaultValue T) Option {
+	return DefaultOption[T]{defaultValue: defaultValue}
+}

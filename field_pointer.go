@@ -6,12 +6,15 @@ import (
 
 // PointerField represents a pointer field
 type PointerField[T any] struct {
-	name        string
-	description string
-	ptr         **T
-	Validators  []Validator
-	callback    func(*Schema, *T)
-	wasAssigned bool // Track if a non-nil value was assigned
+	name         string
+	description  string
+	ptr          **T
+	Validators   []Validator
+	callback     func(*Schema, *T)
+	wasAssigned  bool // Track if a non-nil value was assigned
+	defaultValue T
+	hasDefault   bool
+	transformers []Transformer[T]
 }
 
 func (f *PointerField[T]) Name() string {
@@ -24,6 +27,15 @@ func (f *PointerField[T]) Description() string {
 
 func (f *PointerField[T]) SetDescription(description string) {
 	f.description = description
+}
+
+func (f *PointerField[T]) AddTransformer(transformer Transformer[T]) {
+	f.transformers = append(f.transformers, transformer)
+}
+
+func (f *PointerField[T]) SetDefaultValue(defaultValue T) {
+	f.defaultValue = defaultValue
+	f.hasDefault = true
 }
 
 func (f *PointerField[T]) Value() interface{} {
@@ -39,6 +51,14 @@ func (f *PointerField[T]) Value() interface{} {
 func (f *PointerField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
+		// Apply default value if available
+		if f.hasDefault {
+			instance := new(T)
+			*instance = f.defaultValue
+			*f.ptr = instance
+			f.wasAssigned = true
+			schema.SetFieldPresent(f.name)
+		}
 		return nil
 	}
 
@@ -74,7 +94,17 @@ func (f *PointerField[T]) Assign(data map[string]interface{}, schema *Schema) er
 		if err != nil {
 			return fmt.Errorf("pointer field conversion failed: %v", err)
 		}
-		**f.ptr = converted
+
+		// Apply transformers
+		transformed := converted
+		for _, transformer := range f.transformers {
+			transformed, err = transformer.Transform(transformed)
+			if err != nil {
+				return fmt.Errorf("transformer failed: %v", err)
+			}
+		}
+
+		**f.ptr = transformed
 		f.wasAssigned = true
 	}
 
