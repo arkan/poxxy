@@ -147,17 +147,12 @@ func (o DefaultOption[T]) Apply(field interface{}) {
 		convertPointerField.SetDefaultValue(o.defaultValue)
 		return
 	}
-	// Handle slices separately since they have different default value types
-	if _, ok := field.(*SliceField[T]); ok {
-		// For slices, we need to handle this differently since the default value type doesn't match
-		// This is a limitation of the current approach
-		return
-	}
 	if arrayField, ok := field.(*ArrayField[T]); ok {
 		arrayField.SetDefaultValue(o.defaultValue)
 		return
 	}
-	// Fallback to reflection for types we haven't explicitly handled
+
+	// Handle slices and other types using reflection
 	fieldValue := reflect.ValueOf(field)
 	if fieldValue.Kind() == reflect.Ptr {
 		fieldValue = fieldValue.Elem()
