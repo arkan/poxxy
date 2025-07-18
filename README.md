@@ -1,27 +1,15 @@
 # Poxxy
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/arkan/poxxy.svg)](https://pkg.go.dev/github.com/arkan/poxxy)
-[![Go Report Card](https://goreportcard.com/badge/github.com/arkan/poxxy)](https://goreportcard.com/report/github.com/arkan/poxxy)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+A powerful Go library for data validation, transformation, and schema definition with support for default values and integrated transformers.
 
-Poxxy is a powerful Go library that provides type-safe data mapping and validation for `map[string]interface{}` and HTTP form data. It combines the flexibility of data binding with comprehensive validation capabilities, making it ideal for handling user input in web applications, APIs, and configuration parsing. Unlike other validation libraries, Poxxy doesn't rely on struct tags - all validation rules are defined programmatically, giving you complete control and type safety.
+## Features
 
-
-## Key Features
-
-- **Type-Safe Data Mapping** - Map dynamic data to strongly typed Go structs with compile-time safety
-- **Comprehensive Validation** - Built-in validators for common use cases with custom validator support
-- **Advanced Field Types** - Support for arrays, slices, pointers, nested structs, unions, and transformations
-- **Schema-Based Definition** - Declarative API for defining data structure and validation rules
-- **Conditional Validation** - Apply validators based on other field values (Not fully implemented yet)
-- **Rich Error Reporting** - Detailed validation errors with field-level granularity
-- **Allocation Friendly** - Efficient memory usage for high-performance applications
-
-## Installation
-
-```bash
-go get github.com/arkan/poxxy
-```
+- **Type-safe schema definition** with generics
+- **Built-in validators** for common validation rules
+- **Default values** for fields when not provided
+- **Integrated transformers** for data sanitization and formatting
+- **Support for complex types** including structs, slices, arrays, and pointers
+- **Comprehensive error handling** with detailed validation messages
 
 ## Quick Start
 
@@ -30,417 +18,223 @@ package main
 
 import (
     "fmt"
+    "time"
     "github.com/arkan/poxxy"
 )
 
-type User struct {
-    Name  string
-    Email string
-    Age   int
-}
-
 func main() {
-    // Input data (could come from HTTP forms, JSON, etc.)
-    data := map[string]interface{}{
-        "name":  "John Doe",
-        "email": "john@example.com",
-        "age":   30,
-    }
+    var name string
+    var email string
+    var age int
+    var createdAt time.Time
 
-    var user User
-
-    // Define schema with validation rules
     schema := poxxy.NewSchema(
-        poxxy.Value("name", &user.Name, poxxy.WithValidators(
-            poxxy.Required(),
-            poxxy.MinLength(2),
-        )),
-        poxxy.Value("email", &user.Email, poxxy.WithValidators(
-            poxxy.Required(),
-            poxxy.Email(),
-        )),
-        poxxy.Value("age", &user.Age, poxxy.WithValidators(
-            poxxy.Required(),
-            poxxy.Min(18),
-            poxxy.Max(120),
-        )),
+        poxxy.Value("name", &name,
+            poxxy.WithDefault("Anonymous"),
+            poxxy.WithTransformers(
+                poxxy.TrimSpace(),
+                poxxy.Capitalize(),
+            ),
+            poxxy.WithValidators(poxxy.Required()),
+        ),
+        poxxy.Value("email", &email,
+            poxxy.WithTransformers(poxxy.SanitizeEmail()),
+            poxxy.WithValidators(poxxy.Required(), poxxy.Email()),
+        ),
+        poxxy.Value("age", &age,
+            poxxy.WithDefault(25),
+            poxxy.WithValidators(poxxy.Min(18), poxxy.Max(120)),
+        ),
+        poxxy.Convert("created_at", &createdAt, func(dateStr string) (time.Time, error) {
+            return time.Parse("2006-01-02", dateStr)
+        }, poxxy.WithDefault(time.Now())),
     )
 
-    // Assign and validate
+    data := map[string]interface{}{
+        "name":  "  john doe  ",
+        "email": "  JOHN.DOE@EXAMPLE.COM  ",
+        "created_at": "2024-01-15",
+        // age will use default value
+    }
+
     if err := schema.Apply(data); err != nil {
         fmt.Printf("Validation failed: %v\n", err)
         return
     }
 
-    fmt.Printf("User: %+v\n", user)
-    // Output: User: {Name:John Doe Email:john@example.com Age:30}
+    fmt.Printf("Name: '%s'\n", name)   // Output: Name: 'John doe'
+    fmt.Printf("Email: '%s'\n", email) // Output: Email: 'john.doe@example.com'
+    fmt.Printf("Age: %d\n", age)       // Output: Age: 25
+    fmt.Printf("Created At: %v\n", createdAt) // Output: Created At: 2024-01-15 00:00:00 +0000 UTC
 }
 ```
 
-## HTTP Request Parsing
+## Field Types
 
-Poxxy can directly parse HTTP form data from requests:
+### Value Fields
+Basic value fields for simple types like `string`, `int`, `bool`, etc.
 
 ```go
-package main
-
-import (
-    "fmt"
-    "net/http"
-    "github.com/arkan/poxxy"
-)
-
-type UserRegistration struct {
-    Username string
-    Email    string
-    Age      int
-}
-
-func registerHandler(w http.ResponseWriter, r *http.Request) {
-    var user UserRegistration
-
-    // Define schema with validation rules
-    schema := poxxy.NewSchema(
-        poxxy.Value("username", &user.Username, poxxy.WithValidators(
-            poxxy.Required(),
-            poxxy.MinLength(3),
-            poxxy.MaxLength(20),
-        )),
-        poxxy.Value("email", &user.Email, poxxy.WithValidators(
-            poxxy.Required(),
-            poxxy.Email(),
-        )),
-        poxxy.Value("age", &user.Age, poxxy.WithValidators(
-            poxxy.Required(),
-            poxxy.Min(13),
-            poxxy.Max(120),
-        )),
-    )
-
-    // Parse and validate HTTP form data
-    if err := schema.ApplyHTTPRequest(r); err != nil {
-        http.Error(w, fmt.Sprintf("Validation failed: %v", err), http.StatusBadRequest)
-        return
-    }
-
-    fmt.Fprintf(w, "User registered: %+v\n", user)
-}
-
-func main() {
-    http.HandleFunc("/register", registerHandler)
-    http.ListenAndServe(":8080", nil)
-}
+var name string
+poxxy.Value("name", &name, opts...)
 ```
 
-## Advanced Usage
-
-### Nested Structs
+### Pointer Fields
+Pointer fields for optional values or complex structs.
 
 ```go
-type Address struct {
-    Street string
-    City   string
-}
+var user *User
+poxxy.Pointer("user", &user, opts...)
+```
 
-type User struct {
-    Name    string
-    Address Address
-}
+### Slice Fields
+Slice fields for arrays of values or structs.
 
-var user User
+```go
+var tags []string
+poxxy.Slice("tags", &tags, opts...)
+```
 
-schema := poxxy.NewSchema(
-    poxxy.Value("name", &user.Name, poxxy.WithValidators(poxxy.Required())),
-    poxxy.Struct("address", &user.Address, func(s *poxxy.Schema, addr *Address) {
-        poxxy.WithSchema(s, poxxy.Value("street", &addr.Street, poxxy.WithValidators(poxxy.Required())))
-        poxxy.WithSchema(s, poxxy.Value("city", &addr.City, poxxy.WithValidators(poxxy.Required())))
+### Array Fields
+Fixed-size array fields.
+
+```go
+var coords [2]float64
+poxxy.Array("coords", &coords, opts...)
+```
+
+### Convert Fields
+Fields that convert from one type to another (e.g., string to time.Time).
+
+```go
+var createdAt time.Time
+poxxy.Convert("created_at", &createdAt, func(dateStr string) (time.Time, error) {
+    return time.Parse("2006-01-02", dateStr)
+}, opts...)
+
+var updatedAt *time.Time
+poxxy.ConvertPointer("updated_at", &updatedAt, func(dateStr string) (time.Time, error) {
+    return time.Parse("2006-01-02T15:04:05Z", dateStr)
+}, opts...)
+```
+
+## Options
+
+### Default Values
+Set default values for fields when they're not provided in the input data.
+
+```go
+poxxy.WithDefault("Anonymous")
+poxxy.WithDefault(25)
+poxxy.WithDefault(true)
+```
+
+### Transformers
+Transform data before assignment and validation.
+
+#### Built-in Transformers
+- `ToUpper()` - Convert string to uppercase
+- `ToLower()` - Convert string to lowercase
+- `TrimSpace()` - Remove leading and trailing whitespace
+- `TitleCase()` - Convert string to title case
+- `Capitalize()` - Capitalize first letter
+- `SanitizeEmail()` - Normalize email addresses
+
+#### Custom Transformers
+```go
+poxxy.WithTransformers(
+    poxxy.CustomTransformer(func(value string) (string, error) {
+        return strings.ReplaceAll(value, "old", "new"), nil
     }),
 )
-
-data := map[string]interface{}{
-    "name": "John",
-    "address": map[string]interface{}{
-        "street": "123 Main St",
-        "city":   "Boston",
-    },
-}
 ```
 
-### Optional Fields with Pointers
+### Validators
+Apply validation rules to fields.
 
 ```go
-type User struct {
-    Name  string
-    Email *string  // Optional
-}
-
-var user User
-
-schema := poxxy.NewSchema(
-    poxxy.Value("name", &user.Name, poxxy.WithValidators(poxxy.Required())),
-    poxxy.Pointer("email", &user.Email, poxxy.WithValidators(poxxy.Email())),
-)
-
-// Email field can be omitted from data
-data := map[string]interface{}{
-    "name": "John",
-    // email is optional
-}
-```
-
-### Arrays and Slices
-
-```go
-var tags [3]string    // Fixed-size array
-var scores []int      // Dynamic slice
-
-schema := poxxy.NewSchema(
-    // Fixed array
-    poxxy.Array[string]("tags", &tags, poxxy.WithValidators(
-        poxxy.Required(),
-        poxxy.Each(poxxy.MinLength(1)),
-        poxxy.Unique(),
-    )),
-
-    // Dynamic slice
-    poxxy.Slice[int]("scores", &scores, poxxy.WithValidators(
-        poxxy.MaxLength(10),
-        poxxy.Each(poxxy.Min(0), poxxy.Max(100)),
-    )),
-)
-
-data := map[string]interface{}{
-    "tags":   [3]string{"work", "urgent", "important"},
-    "scores": []int{95, 88, 92},
-}
-```
-
-### Slice of Structs
-
-```go
-type House struct {
-    Address string
-    Price   int
-}
-
-type User struct {
-    Name   string
-    Houses []House
-}
-
-var user User
-
-schema := poxxy.NewSchema(
-    poxxy.Value("name", &user.Name, poxxy.WithValidators(poxxy.Required())),
-    poxxy.SliceOf("houses", &user.Houses, func(s *poxxy.Schema, h *House) {
-        poxxy.WithSchema(s, poxxy.Value("address", &h.Address, poxxy.WithValidators(
-            poxxy.Required(),
-            poxxy.MinLength(5),
-        )))
-        poxxy.WithSchema(s, poxxy.Value("price", &h.Price, poxxy.WithValidators(
-            poxxy.Min(0),
-            poxxy.Max(1000000),
-        )))
-    }, poxxy.WithValidators(
-        poxxy.MinLength(1),
-        poxxy.MaxLength(10),
-    )),
-)
-
-data := map[string]interface{}{
-    "name": "John",
-    "houses": []map[string]interface{}{
-        {
-            "address": "123 Main St",
-            "price":   100000,
-        },
-        {
-            "address": "456 Elm St",
-            "price":   200000,
-        },
-    },
-}
-```
-
-### Type Transformations
-
-```go
-var timestamp time.Time
-var normalizedEmail string
-
-schema := poxxy.NewSchema(
-    // Transform Unix timestamp to time.Time
-    poxxy.Transform[int64, time.Time]("created_at", &timestamp,
-        func(unixTime int64) (time.Time, error) {
-            return time.Unix(unixTime, 0), nil
-        }, poxxy.WithValidators(poxxy.Required())),
-
-    // Normalize email to lowercase
-    poxxy.Transform[string, string]("email", &normalizedEmail,
-        func(email string) (string, error) {
-            return strings.ToLower(strings.TrimSpace(email)), nil
-        }, poxxy.WithValidators(poxxy.Required(), poxxy.Email())),
-)
-
-data := map[string]interface{}{
-    "created_at": int64(1717689600),
-    "email":      "John.Doe@EXAMPLE.COM",
-}
-```
-
-### Union/Polymorphic Types
-
-```go
-type Document interface {
-    GetType() string
-}
-
-type TextDocument struct {
-    Content   string
-    WordCount int
-}
-
-func (t TextDocument) GetType() string { return "text" }
-
-type ImageDocument struct {
-    URL    string
-    Width  int
-    Height int
-}
-
-func (i ImageDocument) GetType() string { return "image" }
-
-var document Document
-
-schema := poxxy.NewSchema(
-    poxxy.Union("document", &document, func(data map[string]interface{}) (interface{}, error) {
-        docType, ok := data["type"].(string)
-        if !ok {
-            return nil, fmt.Errorf("missing document type")
-        }
-
-        switch docType {
-        case "text":
-            var doc TextDocument
-            subSchema := poxxy.NewSchema(
-                poxxy.Value("content", &doc.Content, poxxy.WithValidators(poxxy.Required())),
-                poxxy.Value("word_count", &doc.WordCount, poxxy.WithValidators(poxxy.Min(0))),
-            )
-            if err := subSchema.Apply(data); err != nil {
-                return nil, err
-            }
-            return doc, nil
-
-        case "image":
-            var doc ImageDocument
-            subSchema := poxxy.NewSchema(
-                poxxy.Value("url", &doc.URL, poxxy.WithValidators(poxxy.Required(), poxxy.URL())),
-                poxxy.Value("width", &doc.Width, poxxy.WithValidators(poxxy.Min(1))),
-                poxxy.Value("height", &doc.Height, poxxy.WithValidators(poxxy.Min(1))),
-            )
-            if err := subSchema.Apply(data); err != nil {
-                return nil, err
-            }
-            return doc, nil
-
-        default:
-            return nil, fmt.Errorf("unknown document type: %s", docType)
-        }
-    }),
+poxxy.WithValidators(
+    poxxy.Required(),
+    poxxy.Email(),
+    poxxy.Min(18),
+    poxxy.Max(120),
+    poxxy.MinLength(3),
+    poxxy.MaxLength(50),
 )
 ```
 
 ## Built-in Validators
 
-### Basic Validators
-- `Required()` - Field must be present in input data
-- `NonZero()` - Value must not be zero value
+- `Required()` - Field must be present and non-empty
 - `Email()` - Valid email format
 - `URL()` - Valid URL format
+- `Min(value)` - Minimum numeric value
+- `Max(value)` - Maximum numeric value
+- `MinLength(length)` - Minimum string/slice length
+- `MaxLength(length)` - Maximum string/slice length
+- `In(values...)` - Value must be in the provided list
+- `Each(validators...)` - Apply validators to each slice element
+- `Unique()` - Slice elements must be unique
+- `NotEmpty()` - Value must not be empty (non-zero)
 
-### Numeric Validators
-- `Min(value)` - Minimum value for numbers
-- `Max(value)` - Maximum value for numbers
+## Examples
 
-### String & Collection Validators
-- `MinLength(n)` - Minimum length for strings/slices/arrays
-- `MaxLength(n)` - Maximum length for strings/slices/arrays
-- `In(values...)` - Value must be one of the specified values
+See the `examples/` directory for comprehensive examples:
 
-### Collection Validators
-- `Each(validators...)` - Apply validators to each element
-- `Unique()` - All elements must be unique
-- `UniqueBy(keyExtractor)` - Elements must be unique by extracted key
+- `examples/basic/` - Basic usage examples
+- `examples/http_basic/` - HTTP request validation
+- `examples/http_advanced/` - Advanced HTTP validation
+- `examples/advanced_features/` - Default values and transformers
+- `examples/date_conversion/` - Date and type conversion examples
+- `examples/require/` - Required field validation
+- `examples/debug/` - Debugging examples
 
-### Custom Error Messages
-
-```go
-poxxy.Value("age", &age, poxxy.WithValidators(
-    poxxy.Min(18).WithMessage("You must be at least 18 years old"),
-    poxxy.Max(120).WithMessage("Age cannot exceed 120 years"),
-))
-```
-
-## Supported Field Types
-
-### Basic Types
-- `string`, `int`, `int64`, `float64`, `bool`
-- Pointers to basic types (for optional fields)
-
-### Complex Types
-- `[]T` - Slices of any type
-- `[N]T` - Fixed-size arrays
-- Nested structs with validation callbacks
-- `map[K]V` - Maps with key/value validation
-- Interface types with union resolvers
-
-### Advanced Types
-- Type transformations with `Transform[From, To]()`
-- Conditional validation based on other fields
-- Custom validators and field types
-
-## Error Handling
-
-Poxxy provides detailed error information for validation failures:
+### Date Conversion Example
 
 ```go
-if err := schema.Apply(data); err != nil {
-    if validationErrors, ok := err.(poxxy.Errors); ok {
-        for _, fieldError := range validationErrors {
-            fmt.Printf("Field '%s': %v\n", fieldError.Field, fieldError.Error)
-        }
-    }
+var createdAt time.Time
+var updatedAt *time.Time
+
+schema := poxxy.NewSchema(
+    poxxy.Convert("created_at", &createdAt, func(dateStr string) (time.Time, error) {
+        return time.Parse("2006-01-02", dateStr)
+    }, poxxy.WithValidators(poxxy.Required())),
+
+    poxxy.ConvertPointer("updated_at", &updatedAt, func(dateStr string) (time.Time, error) {
+        return time.Parse("2006-01-02T15:04:05Z", dateStr)
+    }),
+)
+
+data := map[string]interface{}{
+    "created_at": "2024-01-15",
+    "updated_at": "2024-01-15T10:30:00Z",
 }
 ```
 
-## Roadmap
+## Migration from Transform Fields
 
-### Planned Features
+The `Transform` field type has been removed in favor of integrated transformers. Instead of:
 
-- [ ] **Conditional Validation** - Full implementation of field-dependent validation
-- [ ] **Localization Support** - i18n error messages
-- [ ] **Advanced Validators** - Credit card, phone number, date range validators
-- [ ] **Anything else in mind?** - Open issues/pull requests
+```go
+// Old way (removed)
+poxxy.Transform[string, string]("email", &email, func(email string) (string, error) {
+    return strings.ToLower(strings.TrimSpace(email)), nil
+})
+```
 
-### Future Considerations
+Use:
 
-- Real-time validation for streaming data
-- Plugin system for custom validators
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+```go
+// New way
+poxxy.Value("email", &email,
+    poxxy.WithTransformers(
+        poxxy.SanitizeEmail(),
+    ),
+)
+```
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Inspiration
-
-Poxxy draws inspiration from excellent Go libraries:
-
-- [go-playground/form](https://github.com/go-playground/form) - For flexible form decoding patterns
-- [go-playground/validator](https://github.com/go-playground/validator) - For comprehensive validation design
-- [invopop/validation](https://github.com/invopop/validation) - For fluent validation API concepts
+MIT License - see LICENSE file for details.
 
 

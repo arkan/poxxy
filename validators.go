@@ -113,12 +113,23 @@ func WithValidators(validators ...Validator) Option {
 	return ValidatorsOption{validators: validators}
 }
 
+// DefaultValueSetter is an interface for fields that can set default values
+type DefaultValueSetter[T any] interface {
+	SetDefaultValue(defaultValue T)
+}
+
 // DefaultOption holds a default value
 type DefaultOption[T any] struct {
 	defaultValue T
 }
 
 func (o DefaultOption[T]) Apply(field interface{}) {
+	// Try to use interface first
+	if setter, ok := field.(DefaultValueSetter[T]); ok {
+		setter.SetDefaultValue(o.defaultValue)
+		return
+	}
+
 	// Try to use type assertion first
 	if valueField, ok := field.(*ValueField[T]); ok {
 		valueField.SetDefaultValue(o.defaultValue)
@@ -126,6 +137,14 @@ func (o DefaultOption[T]) Apply(field interface{}) {
 	}
 	if pointerField, ok := field.(*PointerField[T]); ok {
 		pointerField.SetDefaultValue(o.defaultValue)
+		return
+	}
+	if convertField, ok := field.(*ConvertField[any, T]); ok {
+		convertField.SetDefaultValue(o.defaultValue)
+		return
+	}
+	if convertPointerField, ok := field.(*ConvertPointerField[any, T]); ok {
+		convertPointerField.SetDefaultValue(o.defaultValue)
 		return
 	}
 	// Handle slices separately since they have different default value types

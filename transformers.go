@@ -38,6 +38,18 @@ func (o TransformerOption[T]) Apply(field interface{}) {
 		}
 		return
 	}
+	if convertField, ok := field.(*ConvertField[any, T]); ok {
+		for _, transformer := range o.transformers {
+			convertField.AddTransformer(transformer)
+		}
+		return
+	}
+	if convertPointerField, ok := field.(*ConvertPointerField[any, T]); ok {
+		for _, transformer := range o.transformers {
+			convertPointerField.AddTransformer(transformer)
+		}
+		return
+	}
 }
 
 // WithTransformers creates a transformers option
