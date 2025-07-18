@@ -91,6 +91,11 @@ func (f *MapField[K, V]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
 
+// AppendValidators implements ValidatorsAppender interface
+func (f *MapField[K, V]) AppendValidators(validators []Validator) {
+	f.Validators = append(f.Validators, validators...)
+}
+
 func (f *MapField[K, V]) SetCallback(callback func(*Schema, K, V)) {
 	f.callback = callback
 }

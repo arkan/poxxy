@@ -73,6 +73,11 @@ func (f *HTTPMapField[K, V]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
 
+// AppendValidators implements ValidatorsAppender interface
+func (f *HTTPMapField[K, V]) AppendValidators(validators []Validator) {
+	f.Validators = append(f.Validators, validators...)
+}
+
 // HTTPMap creates a map field for structs with element-wise schema definition
 func HTTPMap[K comparable, V any](name string, ptr *map[K]V, schemaCallback func(*Schema, *V), opts ...Option) Field {
 	field := &HTTPMapField[K, V]{

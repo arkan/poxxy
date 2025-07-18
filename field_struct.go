@@ -69,6 +69,11 @@ func (f *StructField[T]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
 
+// AppendValidators implements ValidatorsAppender interface
+func (f *StructField[T]) AppendValidators(validators []Validator) {
+	f.Validators = append(f.Validators, validators...)
+}
+
 func (f *StructField[T]) SetCallback(callback func(*Schema, *T)) {
 	f.callback = callback
 }

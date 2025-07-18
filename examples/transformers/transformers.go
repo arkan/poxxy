@@ -15,12 +15,12 @@ func main() {
 
 	schema := poxxy.NewSchema(
 		// Transform Unix timestamp to time.Time
-		poxxy.Transform[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (time.Time, error) {
+		poxxy.Convert[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (time.Time, error) {
 			return time.Unix(unixTime, 0), nil
 		}, poxxy.WithValidators(poxxy.Required())),
 
 		// Normalize email to lowercase
-		poxxy.Transform[string, string]("email", &normalizedEmail, func(email string) (string, error) {
+		poxxy.Convert[string, string]("email", &normalizedEmail, func(email string) (string, error) {
 			return strings.ToLower(strings.TrimSpace(email)), nil
 		}, poxxy.WithValidators(poxxy.Required(), poxxy.Email())),
 	)

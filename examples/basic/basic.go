@@ -80,10 +80,10 @@ func main() {
 			poxxy.WithSchema(s, poxxy.Pointer[string]("email", &p.Email, poxxy.WithValidators(poxxy.Email())))
 
 			// 3. Pointer to struct (optional nested struct)
-			poxxy.WithSchema(s, poxxy.Pointer[Address]("address", &p.Address, func(ss *poxxy.Schema, addr *Address) {
+			poxxy.WithSchema(s, poxxy.Pointer[Address]("address", &p.Address, poxxy.WithSubSchema(func(ss *poxxy.Schema, addr *Address) {
 				poxxy.WithSchema(ss, poxxy.Value[string]("street", &addr.Street, poxxy.WithValidators(poxxy.Required())))
 				poxxy.WithSchema(ss, poxxy.Value[string]("city", &addr.City, poxxy.WithValidators(poxxy.Required())))
-			}))
+			})))
 		})),
 
 		// 4. Fixed-size array (vs slice)

@@ -124,6 +124,11 @@ func (f *ArrayField[T]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, arrayInterface, f.name, schema)
 }
 
+// AppendValidators implements ValidatorsAppender interface
+func (f *ArrayField[T]) AppendValidators(validators []Validator) {
+	f.Validators = append(f.Validators, validators...)
+}
+
 // Array creates an array field
 func Array[T any](name string, ptr interface{}, opts ...Option) Field {
 	field := &ArrayField[T]{

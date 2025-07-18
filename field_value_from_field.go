@@ -62,6 +62,11 @@ func (f *ValueWithoutAssignField[T]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, f.value, f.name, schema)
 }
 
+// AppendValidators implements ValidatorsAppender interface
+func (f *ValueWithoutAssignField[T]) AppendValidators(validators []Validator) {
+	f.Validators = append(f.Validators, validators...)
+}
+
 // ValueWithoutAssign validates a direct value (used in map validation)
 func ValueWithoutAssign[T any](name string, opts ...Option) Field {
 	field := &ValueWithoutAssignField[T]{

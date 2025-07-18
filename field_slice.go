@@ -133,6 +133,11 @@ func (f *SliceField[T]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
 
+// AppendValidators implements ValidatorsAppender interface
+func (f *SliceField[T]) AppendValidators(validators []Validator) {
+	f.Validators = append(f.Validators, validators...)
+}
+
 func (f *SliceField[T]) SetCallback(callback func(*Schema, *T)) {
 	f.callback = callback
 }

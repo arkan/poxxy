@@ -10,6 +10,7 @@ type NestedMapField[K comparable, V any] struct {
 	description string
 	ptr         *map[K]V
 	callback    func(*Schema, K, *V)
+	Validators  []Validator
 	wasAssigned bool // Track if a non-nil value was assigned
 }
 
@@ -84,15 +85,32 @@ func (f *NestedMapField[K, V]) Assign(data map[string]interface{}, schema *Schem
 }
 
 func (f *NestedMapField[K, V]) Validate(schema *Schema) error {
-	// Validation happens during assignment
-	return nil
+	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
+}
+
+// AppendValidators implements ValidatorsAppender interface
+func (f *NestedMapField[K, V]) AppendValidators(validators []Validator) {
+	f.Validators = append(f.Validators, validators...)
+}
+
+// SetCallback implements SubSchemaMapInterface
+func (f *NestedMapField[K, V]) SetCallback(callback func(*Schema, K, V)) {
+	// Convert the callback signature to match our internal callback
+	f.callback = func(s *Schema, k K, v *V) {
+		callback(s, k, *v)
+	}
 }
 
 // NestedMap creates a nested map field
-func NestedMap[K comparable, V any](name string, ptr *map[K]V, callback func(*Schema, K, *V)) Field {
-	return &NestedMapField[K, V]{
-		name:     name,
-		ptr:      ptr,
-		callback: callback,
+func NestedMap[K comparable, V any](name string, ptr *map[K]V, opts ...Option) Field {
+	field := &NestedMapField[K, V]{
+		name: name,
+		ptr:  ptr,
 	}
+
+	for _, opt := range opts {
+		opt.Apply(field)
+	}
+
+	return field
 }

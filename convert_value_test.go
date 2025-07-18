@@ -333,9 +333,9 @@ func TestWasAssignedMechanism_AllFieldTypes(t *testing.T) {
 
 	t.Run("NestedMapField nil triggers required", func(t *testing.T) {
 		var v map[string]string
-		schema := NewSchema(NestedMap("foo", &v, func(s *Schema, k string, v *string) {}), Value("foo", &v, WithValidators(Required())))
+		schema := NewSchema(NestedMap("foo", &v, WithValidators(Required()), WithSubSchemaMap(func(s *Schema, k string, v string) {})))
 		err := schema.Apply(map[string]interface{}{"foo": nil})
-		if err == nil {
+		if err == nil || err.Error() != "foo: field is required" {
 			t.Errorf("expected required error, got %v", err)
 		}
 	})

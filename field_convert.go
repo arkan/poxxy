@@ -97,6 +97,11 @@ func (f *ConvertField[From, To]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
 
+// AppendValidators implements ValidatorsAppender interface
+func (f *ConvertField[From, To]) AppendValidators(validators []Validator) {
+	f.Validators = append(f.Validators, validators...)
+}
+
 // Convert creates a conversion field
 func Convert[From, To any](name string, ptr *To, convert func(From) (To, error), opts ...Option) Field {
 	field := &ConvertField[From, To]{
@@ -176,9 +181,7 @@ func (f *ConvertPointerField[From, To]) Assign(data map[string]interface{}, sche
 	if !exists {
 		// Apply default value if available
 		if f.hasDefault {
-			instance := new(To)
-			*instance = f.defaultValue
-			*f.ptr = instance
+			*f.ptr = &f.defaultValue
 			f.wasAssigned = true
 			schema.SetFieldPresent(f.name)
 		}
@@ -213,20 +216,19 @@ func (f *ConvertPointerField[From, To]) Assign(data map[string]interface{}, sche
 		}
 	}
 
-	// Allocate new instance and assign
-	instance := new(To)
-	*instance = transformed
-	*f.ptr = instance
+	*f.ptr = &transformed
 	f.wasAssigned = true
 	return nil
 }
 
 func (f *ConvertPointerField[From, To]) Validate(schema *Schema) error {
-	if *f.ptr == nil {
-		// Pointer is nil - skip validation unless required
+	if f.ptr == nil || *f.ptr == nil {
 		return validateFieldValidators(f.Validators, nil, f.name, schema)
 	}
-
-	// Validate the pointed value
 	return validateFieldValidators(f.Validators, **f.ptr, f.name, schema)
+}
+
+// AppendValidators implements ValidatorsAppender interface
+func (f *ConvertPointerField[From, To]) AppendValidators(validators []Validator) {
+	f.Validators = append(f.Validators, validators...)
 }

@@ -112,36 +112,30 @@ func (f *PointerField[T]) Assign(data map[string]interface{}, schema *Schema) er
 }
 
 func (f *PointerField[T]) Validate(schema *Schema) error {
-	if *f.ptr == nil {
-		// Pointer is nil - skip validation unless required
+	if f.ptr == nil || *f.ptr == nil {
 		return validateFieldValidators(f.Validators, nil, f.name, schema)
 	}
-
-	// Validate the pointed value
 	return validateFieldValidators(f.Validators, **f.ptr, f.name, schema)
 }
 
-// Pointer creates a pointer field
-func Pointer[T any](name string, ptr **T, opts ...interface{}) Field {
-	var validators []Validator
-	var callback func(*Schema, *T)
+// AppendValidators implements ValidatorsAppender interface
+func (f *PointerField[T]) AppendValidators(validators []Validator) {
+	f.Validators = append(f.Validators, validators...)
+}
 
-	for _, opt := range opts {
-		switch o := opt.(type) {
-		case Option:
-			if validatorOpt, ok := o.(ValidatorsOption); ok {
-				validators = append(validators, validatorOpt.validators...)
-			}
-		case func(*Schema, *T):
-			callback = o
-		}
+func (f *PointerField[T]) SetCallback(callback func(*Schema, *T)) {
+	f.callback = callback
+}
+
+// Pointer creates a pointer field
+func Pointer[T any](name string, ptr **T, opts ...Option) Field {
+	field := &PointerField[T]{
+		name: name,
+		ptr:  ptr,
 	}
 
-	field := &PointerField[T]{
-		name:       name,
-		ptr:        ptr,
-		Validators: validators,
-		callback:   callback,
+	for _, opt := range opts {
+		opt.Apply(field)
 	}
 
 	return field

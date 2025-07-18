@@ -100,20 +100,16 @@ func TestSchema_ApplyHTTPRequest(t *testing.T) {
 			var age int
 			schema := tt.setupSchema(&name, &age)
 			err := schema.ApplyHTTPRequest(tt.request)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Schema.ApplyHTTPRequest() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.wantErr && err != nil && !strings.Contains(err.Error(), tt.expectedErr) {
-				t.Errorf("Schema.ApplyHTTPRequest() error = %v, expected to contain %v", err.Error(), tt.expectedErr)
-			}
-			if !tt.wantErr {
-				if name != tt.expectedName {
-					t.Errorf("Schema.ApplyHTTPRequest() name = %v, want %v", name, tt.expectedName)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				if err != nil {
+					assert.Contains(t, err.Error(), tt.expectedErr)
 				}
-				if age != tt.expectedAge {
-					t.Errorf("Schema.ApplyHTTPRequest() age = %v, want %v", age, tt.expectedAge)
-				}
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedName, name)
+				assert.Equal(t, tt.expectedAge, age)
 			}
 		})
 	}
@@ -168,12 +164,14 @@ func TestSchema_ApplyJSON(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			schema := tt.setupSchema()
 			err := schema.ApplyJSON([]byte(tt.jsonData))
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Schema.ApplyJSON() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.wantErr && err != nil && !strings.Contains(err.Error(), tt.expectedErr) {
-				t.Errorf("Schema.ApplyJSON() error = %v, expected to contain %v", err.Error(), tt.expectedErr)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				if err != nil {
+					assert.Contains(t, err.Error(), tt.expectedErr)
+				}
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -185,19 +183,12 @@ func TestSchema_ApplyWithDescription(t *testing.T) {
 		Value("name", &name, WithValidators(Required(), MinLength(10)), WithDescription("name description")),
 	)
 	err := schema.ApplyJSON([]byte(`{"name": "test"}`))
-	if err == nil {
-		t.Errorf("Schema.ApplyJSON() expected an error, but got %v", err)
-	}
+
+	assert.Error(t, err)
 	errs, ok := err.(Errors)
-	if !ok {
-		t.Errorf("Schema.ApplyJSON() expected an Errors, but got %v", err)
-	}
-	if len(errs) != 1 {
-		t.Errorf("Schema.ApplyJSON() expected 1 error, but got %v", len(errs))
-	}
-	if errs[0].Description != "name description" {
-		t.Errorf("Schema.ApplyJSON() expected error description to be %v, but got %v", "name description", errs[0].Description)
-	}
+	assert.True(t, ok)
+	assert.Len(t, errs, 1)
+	assert.Equal(t, "name description", errs[0].Description)
 }
 
 func TestSchema_ApplyWithConvert(t *testing.T) {
@@ -224,19 +215,11 @@ func TestSchema_ApplyWithConvert(t *testing.T) {
 		}
 
 		err := schema.Apply(data)
-		if err == nil {
-			t.Errorf("Schema.Apply() expected an error, but got %v", err)
-		}
+		assert.Error(t, err)
 		errs, ok := err.(Errors)
-		if !ok {
-			t.Errorf("Schema.Apply() expected an Errors, but got %v", err)
-		}
-		if len(errs) != 1 {
-			t.Errorf("Schema.Apply() expected 1 error, but got %v", len(errs))
-		}
-		if errs[0].Error.Error() != "field is required" {
-			t.Errorf("Schema.Apply() expected error to be %v, but got %v", "field is required", errs[0].Error.Error())
-		}
+		assert.True(t, ok)
+		assert.Len(t, errs, 1)
+		assert.Equal(t, "field is required", errs[0].Error.Error())
 	})
 
 	t.Run("convert with default value", func(t *testing.T) {
@@ -261,16 +244,9 @@ func TestSchema_ApplyWithConvert(t *testing.T) {
 		}
 
 		err := schema.Apply(data)
-		if err != nil {
-			t.Errorf("Schema.Apply() expected no errors, but got %v", err)
-		} else {
-			if timestamp.Unix() != 1717689600 {
-				t.Errorf("Schema.Apply() expected timestamp to be %v, but got %v", 1717689600, timestamp.Unix())
-			}
-			if normalizedEmail != "john.doe@example.com" {
-				t.Errorf("Schema.Apply() expected normalizedEmail to be %v, but got %v", "john.doe@example.com", normalizedEmail)
-			}
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1717689600), timestamp.Unix())
+		assert.Equal(t, "john.doe@example.com", normalizedEmail)
 	})
 
 	t.Run("convert with default value on a pointer", func(t *testing.T) {
@@ -299,7 +275,6 @@ func TestSchema_ApplyWithConvert(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, int64(1717689600), timestamp.Unix())
 		assert.Equal(t, "john.doe@example.com", *normalizedEmail)
-
 	})
 
 	t.Run("apply with nil values", func(t *testing.T) {
@@ -310,12 +285,10 @@ func TestSchema_ApplyWithConvert(t *testing.T) {
 			Value("age", &age, WithValidators(Required())),
 		)
 		err := schema.Apply(map[string]interface{}{"name": nil, "age": nil})
-		if err == nil {
-			t.Errorf("Schema.Apply() expected an error, but got %v", err)
-		}
+		assert.Error(t, err)
 		errs, ok := err.(Errors)
 		assert.True(t, ok)
-		assert.Equal(t, 2, len(errs))
+		assert.Len(t, errs, 2)
 		assert.Equal(t, "field is required", errs[0].Error.Error())
 		assert.Equal(t, "field is required", errs[1].Error.Error())
 	})
@@ -348,7 +321,7 @@ func TestSchema_ApplyWithConvert(t *testing.T) {
 		assert.Error(t, err)
 		errs, ok := err.(Errors)
 		assert.True(t, ok)
-		assert.Equal(t, 1, len(errs))
+		assert.Len(t, errs, 1)
 		assert.Equal(t, "must be greater than 1717689600", errs[0].Error.Error())
 	})
 }

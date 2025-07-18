@@ -96,6 +96,11 @@ func (f *ValueField[T]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
 
+// AppendValidators implements ValidatorsAppender interface
+func (f *ValueField[T]) AppendValidators(validators []Validator) {
+	f.Validators = append(f.Validators, validators...)
+}
+
 // Value creates a value field
 func Value[T any](name string, ptr *T, opts ...Option) Field {
 	field := &ValueField[T]{

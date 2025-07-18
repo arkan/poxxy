@@ -51,59 +51,36 @@ type Option interface {
 	Apply(interface{})
 }
 
+// ValidatorsAppender is an interface for fields that can append validators
+type ValidatorsAppender interface {
+	AppendValidators(validators []Validator)
+}
+
 // ValidatorsOption holds validators
 type ValidatorsOption struct {
 	validators []Validator
 }
 
 func (o ValidatorsOption) Apply(field interface{}) {
-	// Use type switching to handle validators for different field types
-	switch f := field.(type) {
-	case *ValueField[string]:
-		f.Validators = append(f.Validators, o.validators...)
-	case *ValueField[int]:
-		f.Validators = append(f.Validators, o.validators...)
-	case *ValueField[bool]:
-		f.Validators = append(f.Validators, o.validators...)
-	case *ValueField[float64]:
-		f.Validators = append(f.Validators, o.validators...)
-	case *ValueField[[]string]:
-		f.Validators = append(f.Validators, o.validators...)
-	case *ValueField[[4]int]:
-		f.Validators = append(f.Validators, o.validators...)
-	case *ValueField[map[string]string]:
-		f.Validators = append(f.Validators, o.validators...)
-	case *ArrayField[string]:
-		f.Validators = append(f.Validators, o.validators...)
-	case *ArrayField[int]:
-		f.Validators = append(f.Validators, o.validators...)
-	case *SliceField[string]:
-		f.Validators = append(f.Validators, o.validators...)
-	case *SliceField[int]:
-		f.Validators = append(f.Validators, o.validators...)
-	case *SliceField[float64]:
-		f.Validators = append(f.Validators, o.validators...)
-	case *ValueWithoutAssignField[string]:
-		f.Validators = append(f.Validators, o.validators...)
-	case *ValueWithoutAssignField[int]:
-		f.Validators = append(f.Validators, o.validators...)
-	case *ValueWithoutAssignField[bool]:
-		f.Validators = append(f.Validators, o.validators...)
-	default:
-		// Fallback to reflection for types we haven't explicitly handled
-		fieldValue := reflect.ValueOf(field)
-		if fieldValue.Kind() == reflect.Ptr {
-			fieldValue = fieldValue.Elem()
-		}
+	// Try to use the interface first
+	if appender, ok := field.(ValidatorsAppender); ok {
+		appender.AppendValidators(o.validators)
+		return
+	}
 
-		validatorsField := fieldValue.FieldByName("Validators")
-		if validatorsField.IsValid() && validatorsField.CanSet() {
-			// Handle the validators field safely
-			if validatorsField.Type() == reflect.TypeOf([]Validator{}) {
-				currentValidators := validatorsField.Interface().([]Validator)
-				newValidators := append(currentValidators, o.validators...)
-				validatorsField.Set(reflect.ValueOf(newValidators))
-			}
+	// Fallback to reflection for types that don't implement the interface
+	fieldValue := reflect.ValueOf(field)
+	if fieldValue.Kind() == reflect.Ptr {
+		fieldValue = fieldValue.Elem()
+	}
+
+	validatorsField := fieldValue.FieldByName("Validators")
+	if validatorsField.IsValid() && validatorsField.CanSet() {
+		// Handle the validators field safely
+		if validatorsField.Type() == reflect.TypeOf([]Validator{}) {
+			currentValidators := validatorsField.Interface().([]Validator)
+			newValidators := append(currentValidators, o.validators...)
+			validatorsField.Set(reflect.ValueOf(newValidators))
 		}
 	}
 }
@@ -130,29 +107,7 @@ func (o DefaultOption[T]) Apply(field interface{}) {
 		return
 	}
 
-	// Try to use type assertion first
-	if valueField, ok := field.(*ValueField[T]); ok {
-		valueField.SetDefaultValue(o.defaultValue)
-		return
-	}
-	if pointerField, ok := field.(*PointerField[T]); ok {
-		pointerField.SetDefaultValue(o.defaultValue)
-		return
-	}
-	if convertField, ok := field.(*ConvertField[any, T]); ok {
-		convertField.SetDefaultValue(o.defaultValue)
-		return
-	}
-	if convertPointerField, ok := field.(*ConvertPointerField[any, T]); ok {
-		convertPointerField.SetDefaultValue(o.defaultValue)
-		return
-	}
-	if arrayField, ok := field.(*ArrayField[T]); ok {
-		arrayField.SetDefaultValue(o.defaultValue)
-		return
-	}
-
-	// Handle slices and other types using reflection
+	// Fallback to reflection for types that don't implement the interface
 	fieldValue := reflect.ValueOf(field)
 	if fieldValue.Kind() == reflect.Ptr {
 		fieldValue = fieldValue.Elem()
