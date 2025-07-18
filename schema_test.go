@@ -2,10 +2,14 @@ package poxxy
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSchema_ApplyHTTPRequest(t *testing.T) {
@@ -196,44 +200,107 @@ func TestSchema_ApplyWithDescription(t *testing.T) {
 	}
 }
 
-func TestSchema_ApplyWithTransform(t *testing.T) {
+func TestSchema_ApplyWithConvert(t *testing.T) {
 
-	// t.Run("transform with required validator", func(t *testing.T) {
-	// 	var timestamp time.Time
-	// 	var normalizedEmail string
+	t.Run("convert with required validator", func(t *testing.T) {
+		var timestamp time.Time
+		var normalizedEmail string
 
-	// 	schema := NewSchema(
-	// 		// Transform Unix timestamp to time.Time
-	// 		Transform[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (time.Time, error) {
-	// 			return time.Unix(unixTime, 0), nil
-	// 		}, WithValidators(Required())),
+		schema := NewSchema(
+			// Transform Unix timestamp to time.Time
+			Convert[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (time.Time, error) {
+				return time.Unix(unixTime, 0), nil
+			}, WithValidators(Required())),
 
-	// 		// Normalize email to lowercase
-	// 		Transform[string, string]("email", &normalizedEmail, func(email string) (string, error) {
-	// 			return strings.ToLower(strings.TrimSpace(email)), nil
-	// 		}, WithValidators(Required(), Email())),
-	// 	)
+			// Normalize email to lowercase
+			Convert[string, string]("email", &normalizedEmail, func(email string) (string, error) {
+				return strings.ToLower(strings.TrimSpace(email)), nil
+			}, WithValidators(Required(), Email())),
+		)
 
-	// 	data := map[string]interface{}{
-	// 		// "created_at": 1717689600, // We skip it.
-	// 		"email": "John.Doe@example.com",
-	// 	}
+		data := map[string]interface{}{
+			// "created_at": 1717689600, // We skip it.
+			"email": "John.Doe@example.com",
+		}
 
-	// 	err := schema.Apply(data)
-	// 	if err == nil {
-	// 		t.Errorf("Schema.Apply() expected an error, but got %v", err)
-	// 	}
-	// 	errs, ok := err.(Errors)
-	// 	if !ok {
-	// 		t.Errorf("Schema.Apply() expected an Errors, but got %v", err)
-	// 	}
-	// 	if len(errs) != 1 {
-	// 		t.Errorf("Schema.Apply() expected 1 error, but got %v", len(errs))
-	// 	}
-	// 	if errs[0].Error.Error() != "field is required" {
-	// 		t.Errorf("Schema.Apply() expected error to be %v, but got %v", "field is required", errs[0].Error.Error())
-	// 	}
-	// })
+		err := schema.Apply(data)
+		if err == nil {
+			t.Errorf("Schema.Apply() expected an error, but got %v", err)
+		}
+		errs, ok := err.(Errors)
+		if !ok {
+			t.Errorf("Schema.Apply() expected an Errors, but got %v", err)
+		}
+		if len(errs) != 1 {
+			t.Errorf("Schema.Apply() expected 1 error, but got %v", len(errs))
+		}
+		if errs[0].Error.Error() != "field is required" {
+			t.Errorf("Schema.Apply() expected error to be %v, but got %v", "field is required", errs[0].Error.Error())
+		}
+	})
+
+	t.Run("convert with default value", func(t *testing.T) {
+		var timestamp time.Time
+		var normalizedEmail string
+
+		schema := NewSchema(
+			// Transform Unix timestamp to time.Time
+			Convert[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (time.Time, error) {
+				return time.Unix(unixTime, 0), nil
+			}, WithValidators(Required()), WithDefault(time.Unix(1717689600, 0))),
+
+			// Normalize email to lowercase
+			Convert[string, string]("email", &normalizedEmail, func(email string) (string, error) {
+				return strings.ToLower(strings.TrimSpace(email)), nil
+			}, WithValidators(Required(), Email())),
+		)
+
+		data := map[string]interface{}{
+			// "created_at": 1717689600, // We skip it.
+			"email": "John.Doe@example.com",
+		}
+
+		err := schema.Apply(data)
+		if err != nil {
+			t.Errorf("Schema.Apply() expected no errors, but got %v", err)
+		} else {
+			if timestamp.Unix() != 1717689600 {
+				t.Errorf("Schema.Apply() expected timestamp to be %v, but got %v", 1717689600, timestamp.Unix())
+			}
+			if normalizedEmail != "john.doe@example.com" {
+				t.Errorf("Schema.Apply() expected normalizedEmail to be %v, but got %v", "john.doe@example.com", normalizedEmail)
+			}
+		}
+	})
+
+	t.Run("convert with default value on a pointer", func(t *testing.T) {
+
+		var timestamp *time.Time
+		var normalizedEmail *string
+
+		schema := NewSchema(
+			// Transform Unix timestamp to time.Time
+			ConvertPointer[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (time.Time, error) {
+				return time.Unix(unixTime, 0), nil
+			}, WithValidators(Required()), WithDefault(time.Unix(1717689600, 0))),
+
+			// Normalize email to lowercase
+			ConvertPointer[string, string]("email", &normalizedEmail, func(email string) (string, error) {
+				return strings.ToLower(strings.TrimSpace(email)), nil
+			}, WithValidators(Required(), Email())),
+		)
+
+		data := map[string]interface{}{
+			// "created_at": 1717689600, // We skip it.
+			"email": "John.Doe@example.com",
+		}
+
+		err := schema.Apply(data)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1717689600), timestamp.Unix())
+		assert.Equal(t, "john.doe@example.com", *normalizedEmail)
+
+	})
 
 	t.Run("apply with nil values", func(t *testing.T) {
 		var name string
@@ -247,59 +314,41 @@ func TestSchema_ApplyWithTransform(t *testing.T) {
 			t.Errorf("Schema.Apply() expected an error, but got %v", err)
 		}
 		errs, ok := err.(Errors)
-		if !ok {
-			t.Errorf("Schema.Apply() expected an Errors, but got %v", err)
-		}
-		if len(errs) != 2 {
-			t.Errorf("Schema.Apply() expected 2 errors, but got %v", len(errs))
-		} else {
-			if errs[0].Error.Error() != "field is required" {
-				t.Errorf("Schema.Apply() field name %q expected error to be %v, but got %v", errs[0].Field, "field is required", errs[0].Error.Error())
-			}
-
-			if errs[1].Error.Error() != "field is required" {
-				t.Errorf("Schema.Apply() expected error to be %v, but got %v", "field is required", errs[1].Error.Error())
-			}
-		}
+		assert.True(t, ok)
+		assert.Equal(t, 2, len(errs))
+		assert.Equal(t, "field is required", errs[0].Error.Error())
+		assert.Equal(t, "field is required", errs[1].Error.Error())
 	})
 
-	// t.Run("transform with custom validator", func(t *testing.T) {
-	// 	var timestamp time.Time
-	// 	var normalizedEmail string
+	t.Run("transform with custom validator", func(t *testing.T) {
+		var timestamp time.Time
+		var normalizedEmail string
 
-	// 	unix := int64(1717689600)
-	// 	schema := NewSchema(
-	// 		// Transform Unix timestamp to time.Time
-	// 		Transform[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (time.Time, error) {
-	// 			return time.Unix(unixTime, 0), nil
-	// 		}, WithValidators(Required(), ValidatorFunc(func(value time.Time, fieldName string) error {
-	// 			return fmt.Errorf("must be greater than %d", unix)
-	// 		}))),
+		unix := int64(1717689600)
+		schema := NewSchema(
+			// Transform Unix timestamp to time.Time
+			Convert[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (time.Time, error) {
+				return time.Unix(unixTime, 0), nil
+			}, WithValidators(Required(), ValidatorFunc(func(value time.Time, fieldName string) error {
+				return fmt.Errorf("must be greater than %d", unix)
+			}))),
 
-	// 		// Normalize email to lowercase
-	// 		Transform[string, string]("email", &normalizedEmail, func(email string) (string, error) {
-	// 			return strings.ToLower(strings.TrimSpace(email)), nil
-	// 		}, WithValidators(Required(), Email())),
-	// 	)
+			// Normalize email to lowercase
+			Convert[string, string]("email", &normalizedEmail, func(email string) (string, error) {
+				return strings.ToLower(strings.TrimSpace(email)), nil
+			}, WithValidators(Required(), Email())),
+		)
 
-	// 	data := map[string]interface{}{
-	// 		"created_at": unix, // We skip it.
-	// 		"email":      "John.Doe@example.com",
-	// 	}
+		data := map[string]interface{}{
+			"created_at": unix, // We skip it.
+			"email":      "John.Doe@example.com",
+		}
 
-	// 	err := schema.Apply(data)
-	// 	if err == nil {
-	// 		t.Errorf("Schema.Apply() expected an error, but got %v", err)
-	// 	}
-	// 	errs, ok := err.(Errors)
-	// 	if !ok {
-	// 		t.Errorf("Schema.Apply() expected an Errors, but got %v", err)
-	// 	}
-	// 	if len(errs) != 1 {
-	// 		t.Errorf("Schema.Apply() expected 1 error, but got %v", len(errs))
-	// 	}
-	// 	if errs[0].Error.Error() != "must be greater than 1717689600" {
-	// 		t.Errorf("Schema.Apply() expected error to be %v, but got %v", "must be greater than 1717689600", errs[0].Error.Error())
-	// 	}
-	// })
+		err := schema.Apply(data)
+		assert.Error(t, err)
+		errs, ok := err.(Errors)
+		assert.True(t, ok)
+		assert.Equal(t, 1, len(errs))
+		assert.Equal(t, "must be greater than 1717689600", errs[0].Error.Error())
+	})
 }
