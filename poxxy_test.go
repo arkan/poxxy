@@ -491,3 +491,205 @@ func TestPoxxy_Struct_DefaultValue(t *testing.T) {
 		}
 	})
 }
+
+func TestPoxxy_NestedMap_DefaultValue(t *testing.T) {
+	// Test default value when field is missing
+	t.Run("default value applied when field missing", func(t *testing.T) {
+		var userPreferences map[string]string
+		defaultPreferences := map[string]string{
+			"theme":    "dark",
+			"language": "en",
+			"timezone": "UTC",
+		}
+
+		schema := NewSchema(
+			NestedMap("preferences", &userPreferences,
+				WithDefault(defaultPreferences),
+				WithSubSchemaMap(func(s *Schema, k string, v string) {
+					// Optional validation for individual map entries
+				}),
+			),
+		)
+
+		// Apply empty JSON - should use default value
+		jsonData := `{}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		if len(userPreferences) != 3 {
+			t.Errorf("Schema.ApplyJSON() userPreferences length = %v, want %v", len(userPreferences), 3)
+		}
+		if userPreferences["theme"] != "dark" {
+			t.Errorf("Schema.ApplyJSON() userPreferences[\"theme\"] = %v, want %v", userPreferences["theme"], "dark")
+		}
+		if userPreferences["language"] != "en" {
+			t.Errorf("Schema.ApplyJSON() userPreferences[\"language\"] = %v, want %v", userPreferences["language"], "en")
+		}
+		if userPreferences["timezone"] != "UTC" {
+			t.Errorf("Schema.ApplyJSON() userPreferences[\"timezone\"] = %v, want %v", userPreferences["timezone"], "UTC")
+		}
+	})
+
+	// Test that provided value overrides default
+	t.Run("provided value overrides default", func(t *testing.T) {
+		var userPreferences map[string]string
+		defaultPreferences := map[string]string{
+			"theme":    "dark",
+			"language": "en",
+			"timezone": "UTC",
+		}
+
+		schema := NewSchema(
+			NestedMap("preferences", &userPreferences,
+				WithDefault(defaultPreferences),
+				WithSubSchemaMap(func(s *Schema, k string, v string) {
+					// Optional validation for individual map entries
+				}),
+			),
+		)
+
+		// Apply JSON with preferences data - should override default
+		jsonData := `{"preferences": {"theme": "light", "language": "es", "notifications": "on"}}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		if len(userPreferences) != 3 {
+			t.Errorf("Schema.ApplyJSON() userPreferences length = %v, want %v", len(userPreferences), 3)
+		}
+		if userPreferences["theme"] != "light" {
+			t.Errorf("Schema.ApplyJSON() userPreferences[\"theme\"] = %v, want %v", userPreferences["theme"], "light")
+		}
+		if userPreferences["language"] != "es" {
+			t.Errorf("Schema.ApplyJSON() userPreferences[\"language\"] = %v, want %v", userPreferences["language"], "es")
+		}
+		if userPreferences["notifications"] != "on" {
+			t.Errorf("Schema.ApplyJSON() userPreferences[\"notifications\"] = %v, want %v", userPreferences["notifications"], "on")
+		}
+		// Default value should not be present
+		if _, exists := userPreferences["timezone"]; exists {
+			t.Errorf("Schema.ApplyJSON() userPreferences[\"timezone\"] should not exist, but got %v", userPreferences["timezone"])
+		}
+	})
+
+	// Test default value with nil field
+	t.Run("default value not applied when field is explicitly nil", func(t *testing.T) {
+		var userPreferences map[string]string
+		defaultPreferences := map[string]string{
+			"theme":    "dark",
+			"language": "en",
+			"timezone": "UTC",
+		}
+
+		schema := NewSchema(
+			NestedMap("preferences", &userPreferences,
+				WithDefault(defaultPreferences),
+				WithSubSchemaMap(func(s *Schema, k string, v string) {
+					// Optional validation for individual map entries
+				}),
+			),
+		)
+
+		// Apply JSON with nil preferences - should NOT use default value when explicitly null
+		jsonData := `{"preferences": null}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		// When field is explicitly null, default value should not be applied
+		// The field should remain unassigned (nil map)
+		if userPreferences != nil {
+			t.Errorf("Schema.ApplyJSON() userPreferences = %v, want nil", userPreferences)
+		}
+	})
+
+	// Test SetDefaultValue method directly
+	t.Run("SetDefaultValue method works", func(t *testing.T) {
+		var userPreferences map[string]string
+		defaultPreferences := map[string]string{
+			"theme":    "method_default",
+			"language": "fr",
+			"timezone": "EST",
+		}
+
+		// Create nested map field directly to test SetDefaultValue method
+		nestedMapField := &NestedMapField[string, string]{
+			name: "preferences",
+			ptr:  &userPreferences,
+		}
+
+		// Set the callback
+		nestedMapField.SetCallback(func(s *Schema, k string, v string) {
+			// Optional validation for individual map entries
+		})
+
+		// Set default value directly
+		nestedMapField.SetDefaultValue(defaultPreferences)
+
+		// Create schema with the field
+		schema := NewSchema(nestedMapField)
+
+		// Apply empty JSON - should use default value
+		jsonData := `{}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		if len(userPreferences) != 3 {
+			t.Errorf("Schema.ApplyJSON() userPreferences length = %v, want %v", len(userPreferences), 3)
+		}
+		if userPreferences["theme"] != "method_default" {
+			t.Errorf("Schema.ApplyJSON() userPreferences[\"theme\"] = %v, want %v", userPreferences["theme"], "method_default")
+		}
+		if userPreferences["language"] != "fr" {
+			t.Errorf("Schema.ApplyJSON() userPreferences[\"language\"] = %v, want %v", userPreferences["language"], "fr")
+		}
+		if userPreferences["timezone"] != "EST" {
+			t.Errorf("Schema.ApplyJSON() userPreferences[\"timezone\"] = %v, want %v", userPreferences["timezone"], "EST")
+		}
+	})
+
+	// Test with different key and value types
+	t.Run("works with different key and value types", func(t *testing.T) {
+		var userScores map[int]float64
+		defaultScores := map[int]float64{
+			1: 95.5,
+			2: 87.2,
+			3: 92.8,
+		}
+
+		schema := NewSchema(
+			NestedMap("scores", &userScores,
+				WithDefault(defaultScores),
+				WithSubSchemaMap(func(s *Schema, k int, v float64) {
+					// Optional validation for individual map entries
+				}),
+			),
+		)
+
+		// Apply empty JSON - should use default value
+		jsonData := `{}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		if len(userScores) != 3 {
+			t.Errorf("Schema.ApplyJSON() userScores length = %v, want %v", len(userScores), 3)
+		}
+		if userScores[1] != 95.5 {
+			t.Errorf("Schema.ApplyJSON() userScores[1] = %v, want %v", userScores[1], 95.5)
+		}
+		if userScores[2] != 87.2 {
+			t.Errorf("Schema.ApplyJSON() userScores[2] = %v, want %v", userScores[2], 87.2)
+		}
+		if userScores[3] != 92.8 {
+			t.Errorf("Schema.ApplyJSON() userScores[3] = %v, want %v", userScores[3], 92.8)
+		}
+	})
+}
