@@ -11,7 +11,7 @@ import (
 // Après : interfaces génériques robustes avec ValidatorsAppender et DefaultValueSetter
 
 func main() {
-	fmt.Println("=== Démonstration des interfaces génériques améliorées ===\n")
+	fmt.Println("=== Démonstration des interfaces génériques améliorées ===")
 
 	// 1. Différents types de champs avec validators - tous utilisent la même interface
 	var name string

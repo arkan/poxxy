@@ -107,6 +107,7 @@ func (o DefaultOption[T]) Apply(field interface{}) {
 		return
 	}
 
+	// TODO: the following is not necessary, but we keep it for now.
 	// // Fallback to reflection for types that don't implement the interface
 	// fieldValue := reflect.ValueOf(field)
 	// if fieldValue.Kind() == reflect.Ptr {

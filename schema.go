@@ -9,7 +9,7 @@ import (
 
 // MaxBodySize is the maximum size of the body of an HTTP request
 // You can change this value to limit the size of the body of an HTTP request
-const MaxBodySize = 5 << 20 // 5MB limit
+var MaxBodySize int64 = 5 << 20 // 5MB limit
 
 // Schema represents a validation schema
 type Schema struct {

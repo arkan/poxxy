@@ -95,7 +95,7 @@ func ExampleMapWithDefault() {
 }
 
 func main() {
-	fmt.Println("=== Basic Examples ===\n")
+	fmt.Println("=== Basic Examples ===")
 
 	// Demonstrate struct with default values
 	fmt.Println("1. Struct with default values:")

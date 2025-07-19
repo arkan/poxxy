@@ -3,6 +3,9 @@ package poxxy
 import (
 	"strings"
 	"unicode"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // Transformer represents a function that transforms a value before assignment and validation
@@ -90,7 +93,7 @@ func TrimSpace() Transformer[string] {
 func TitleCase() Transformer[string] {
 	return TransformerFn[string]{
 		fn: func(value string) (string, error) {
-			return strings.Title(strings.ToLower(value)), nil
+			return cases.Title(language.English).String(value), nil
 		},
 	}
 }
