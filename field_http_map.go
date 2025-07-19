@@ -105,6 +105,23 @@ func (f *HTTPMapField[K, V]) SetDefaultValue(defaultValue map[K]V) {
 	f.hasDefault = true
 }
 
+// HTTPMapCallbackOption holds a callback function for HTTPMap
+type HTTPMapCallbackOption[K comparable, V any] struct {
+	callback func(*Schema, *V)
+}
+
+// Apply applies the callback to the HTTPMap field
+func (o HTTPMapCallbackOption[K, V]) Apply(field interface{}) {
+	if httpMapField, ok := field.(*HTTPMapField[K, V]); ok {
+		httpMapField.SetCallback(o.callback)
+	}
+}
+
+// WithHTTPMapCallback creates a callback option for HTTPMap
+func WithHTTPMapCallback[K comparable, V any](callback func(*Schema, *V)) Option {
+	return HTTPMapCallbackOption[K, V]{callback: callback}
+}
+
 // HTTPMap creates an HTTP map field
 func HTTPMap[K comparable, V any](name string, ptr *map[K]V, opts ...Option) Field {
 	field := &HTTPMapField[K, V]{

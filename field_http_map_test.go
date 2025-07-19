@@ -150,10 +150,10 @@ func TestHTTPMap_SetDefaultValue(t *testing.T) {
 		}
 
 		schema := NewSchema(
-			HTTPMap("attachments", &attachments, func(s *Schema, a *Attachment) {
+			HTTPMap("attachments", &attachments, WithHTTPMapCallback[string, Attachment](func(s *Schema, a *Attachment) {
 				WithSchema(s, Value("url", &a.URL, WithValidators(Required())))
 				WithSchema(s, Value("filename", &a.Filename, WithValidators(Required())))
-			}, WithDefault(defaultAttachments)),
+			}), WithDefault(defaultAttachments)),
 		)
 
 		// Apply empty data - should use default value
@@ -176,10 +176,10 @@ func TestHTTPMap_SetDefaultValue(t *testing.T) {
 		}
 
 		schema := NewSchema(
-			HTTPMap("attachments", &attachments, func(s *Schema, a *Attachment) {
+			HTTPMap("attachments", &attachments, WithHTTPMapCallback[string, Attachment](func(s *Schema, a *Attachment) {
 				WithSchema(s, Value("url", &a.URL, WithValidators(Required())))
 				WithSchema(s, Value("filename", &a.Filename, WithValidators(Required())))
-			}, WithDefault(defaultAttachments)),
+			}), WithDefault(defaultAttachments)),
 		)
 
 		// Apply data with form values - should override default
@@ -204,10 +204,10 @@ func TestHTTPMap_SetDefaultValue(t *testing.T) {
 		var attachments map[string]Attachment
 
 		schema := NewSchema(
-			HTTPMap("attachments", &attachments, func(s *Schema, a *Attachment) {
+			HTTPMap("attachments", &attachments, WithHTTPMapCallback[string, Attachment](func(s *Schema, a *Attachment) {
 				WithSchema(s, Value("url", &a.URL, WithValidators(Required())))
 				WithSchema(s, Value("filename", &a.Filename, WithValidators(Required())))
-			}),
+			})),
 		)
 
 		// Apply empty data - should not set any value
@@ -231,11 +231,11 @@ func TestHTTPMap_SetDefaultValue(t *testing.T) {
 		}
 
 		schema := NewSchema(
-			HTTPMap("users", &users, func(s *Schema, u *User) {
+			HTTPMap("users", &users, WithHTTPMapCallback[int, User](func(s *Schema, u *User) {
 				WithSchema(s, Value("name", &u.Name, WithValidators(Required())))
 				WithSchema(s, Value("email", &u.Email, WithValidators(Required())))
 				WithSchema(s, Value("age", &u.Age, WithValidators(Required())))
-			}, WithDefault(defaultUsers)),
+			}), WithDefault(defaultUsers)),
 		)
 
 		// Apply empty data - should use default value
@@ -258,10 +258,10 @@ func TestHTTPMap_SetDefaultValue(t *testing.T) {
 		}
 
 		schema := NewSchema(
-			HTTPMap("configs", &configs, func(s *Schema, c *Config) {
+			HTTPMap("configs", &configs, WithHTTPMapCallback[string, Config](func(s *Schema, c *Config) {
 				WithSchema(s, Value("value", &c.Value, WithValidators(Required())))
 				WithSchema(s, Value("type", &c.Type, WithValidators(Required())))
-			}, WithDefault(defaultConfigs)),
+			}), WithDefault(defaultConfigs)),
 		)
 
 		// Apply empty data - should use default value
@@ -276,10 +276,10 @@ func TestHTTPMap_SetDefaultValue(t *testing.T) {
 		defaultAttachments := map[string]Attachment{}
 
 		schema := NewSchema(
-			HTTPMap("attachments", &attachments, func(s *Schema, a *Attachment) {
+			HTTPMap("attachments", &attachments, WithHTTPMapCallback[string, Attachment](func(s *Schema, a *Attachment) {
 				WithSchema(s, Value("url", &a.URL, WithValidators(Required())))
 				WithSchema(s, Value("filename", &a.Filename, WithValidators(Required())))
-			}, WithDefault(defaultAttachments)),
+			}), WithDefault(defaultAttachments)),
 		)
 
 		// Apply empty data - should use empty default
