@@ -107,21 +107,21 @@ func (o DefaultOption[T]) Apply(field interface{}) {
 		return
 	}
 
-	// Fallback to reflection for types that don't implement the interface
-	fieldValue := reflect.ValueOf(field)
-	if fieldValue.Kind() == reflect.Ptr {
-		fieldValue = fieldValue.Elem()
-	}
+	// // Fallback to reflection for types that don't implement the interface
+	// fieldValue := reflect.ValueOf(field)
+	// if fieldValue.Kind() == reflect.Ptr {
+	// 	fieldValue = fieldValue.Elem()
+	// }
 
-	defaultValueField := fieldValue.FieldByName("defaultValue")
-	hasDefaultField := fieldValue.FieldByName("hasDefault")
+	// defaultValueField := fieldValue.FieldByName("defaultValue")
+	// hasDefaultField := fieldValue.FieldByName("hasDefault")
 
-	if defaultValueField.IsValid() && defaultValueField.CanSet() {
-		defaultValueField.Set(reflect.ValueOf(o.defaultValue))
-	}
-	if hasDefaultField.IsValid() && hasDefaultField.CanSet() {
-		hasDefaultField.Set(reflect.ValueOf(true))
-	}
+	// if defaultValueField.IsValid() && defaultValueField.CanSet() {
+	// 	defaultValueField.Set(reflect.ValueOf(o.defaultValue))
+	// }
+	// if hasDefaultField.IsValid() && hasDefaultField.CanSet() {
+	// 	hasDefaultField.Set(reflect.ValueOf(true))
+	// }
 }
 
 // WithDefault creates a default value option

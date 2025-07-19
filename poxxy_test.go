@@ -354,3 +354,140 @@ func TestPoxxy_SQLNullFields(t *testing.T) {
 		t.Errorf("Schema.ApplyJSON() user.Age = %v, want %v", user.Age.Int64, 20)
 	}
 }
+
+func TestPoxxy_Struct_DefaultValue(t *testing.T) {
+	type User struct {
+		Name string
+		Age  int
+	}
+
+	// Test default value when field is missing
+	t.Run("default value applied when field missing", func(t *testing.T) {
+		var user User
+		defaultUser := User{Name: "Default User", Age: 25}
+
+		schema := NewSchema(
+			Struct("user", &user,
+				WithDefault(defaultUser),
+				WithSubSchema(func(schema *Schema, user *User) {
+					WithSchema(schema, Value("name", &user.Name, WithValidators(Required())))
+					WithSchema(schema, Value("age", &user.Age, WithValidators(Required())))
+				}),
+			),
+		)
+
+		// Apply empty JSON - should use default value
+		jsonData := `{}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		if user.Name != "Default User" {
+			t.Errorf("Schema.ApplyJSON() user.Name = %v, want %v", user.Name, "Default User")
+		}
+		if user.Age != 25 {
+			t.Errorf("Schema.ApplyJSON() user.Age = %v, want %v", user.Age, 25)
+		}
+	})
+
+	// Test that provided value overrides default
+	t.Run("provided value overrides default", func(t *testing.T) {
+		var user User
+		defaultUser := User{Name: "Default User", Age: 25}
+
+		schema := NewSchema(
+			Struct("user", &user,
+				WithDefault(defaultUser),
+				WithSubSchema(func(schema *Schema, user *User) {
+					WithSchema(schema, Value("name", &user.Name, WithValidators(Required())))
+					WithSchema(schema, Value("age", &user.Age, WithValidators(Required())))
+				}),
+			),
+		)
+
+		// Apply JSON with user data - should override default
+		jsonData := `{"user": {"name": "John Doe", "age": 30}}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		if user.Name != "John Doe" {
+			t.Errorf("Schema.ApplyJSON() user.Name = %v, want %v", user.Name, "John Doe")
+		}
+		if user.Age != 30 {
+			t.Errorf("Schema.ApplyJSON() user.Age = %v, want %v", user.Age, 30)
+		}
+	})
+
+	// Test default value with nil field
+	t.Run("default value not applied when field is explicitly nil", func(t *testing.T) {
+		var user User
+		defaultUser := User{Name: "Default User", Age: 25}
+
+		schema := NewSchema(
+			Struct("user", &user,
+				WithDefault(defaultUser),
+				WithSubSchema(func(schema *Schema, user *User) {
+					WithSchema(schema, Value("name", &user.Name, WithValidators(Required())))
+					WithSchema(schema, Value("age", &user.Age, WithValidators(Required())))
+				}),
+			),
+		)
+
+		// Apply JSON with nil user - should NOT use default value when explicitly null
+		jsonData := `{"user": null}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		// When field is explicitly null, default value should not be applied
+		// The field should remain unassigned (zero values)
+		if user.Name != "" {
+			t.Errorf("Schema.ApplyJSON() user.Name = %v, want empty string", user.Name)
+		}
+		if user.Age != 0 {
+			t.Errorf("Schema.ApplyJSON() user.Age = %v, want 0", user.Age)
+		}
+	})
+
+	// Test SetDefaultValue method directly
+	t.Run("SetDefaultValue method works", func(t *testing.T) {
+		var user User
+		defaultUser := User{Name: "Method Default", Age: 42}
+
+		// Create struct field directly to test SetDefaultValue method
+		structField := &StructField[User]{
+			name: "user",
+			ptr:  &user,
+		}
+
+		// Set the callback
+		structField.SetCallback(func(schema *Schema, user *User) {
+			WithSchema(schema, Value("name", &user.Name, WithValidators(Required())))
+			WithSchema(schema, Value("age", &user.Age, WithValidators(Required())))
+		})
+
+		// Set default value directly
+		structField.SetDefaultValue(defaultUser)
+
+		// Create schema with the field
+		schema := NewSchema(structField)
+
+		// Apply empty JSON - should use default value
+		jsonData := `{}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		if user.Name != "Method Default" {
+			t.Errorf("Schema.ApplyJSON() user.Name = %v, want %v", user.Name, "Method Default")
+		}
+		if user.Age != 42 {
+			t.Errorf("Schema.ApplyJSON() user.Age = %v, want %v", user.Age, 42)
+		}
+	})
+}

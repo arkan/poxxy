@@ -37,6 +37,37 @@ type ImageDocument struct {
 
 func (i ImageDocument) GetType() string { return "image" }
 
+func ExampleStructWithDefault() {
+	type User struct {
+		Name string
+		Age  int
+	}
+
+	var user User
+	defaultUser := User{Name: "Anonymous", Age: 25}
+
+	schema := poxxy.NewSchema(
+		poxxy.Struct("user", &user,
+			poxxy.WithDefault(defaultUser),
+			poxxy.WithSubSchema(func(schema *poxxy.Schema, user *User) {
+				poxxy.WithSchema(schema, poxxy.Value("name", &user.Name, poxxy.WithValidators(poxxy.Required())))
+				poxxy.WithSchema(schema, poxxy.Value("age", &user.Age, poxxy.WithValidators(poxxy.Required())))
+			}),
+		),
+	)
+
+	// Apply empty JSON - will use default value
+	jsonData := `{}`
+	err := schema.ApplyJSON([]byte(jsonData))
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+
+	fmt.Printf("User: %+v\n", user)
+	// Output: User: {Name:Anonymous Age:25}
+}
+
 func main() {
 	data := map[string]interface{}{
 		"profile": map[string]interface{}{

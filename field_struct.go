@@ -6,12 +6,14 @@ import (
 
 // StructField represents a struct field with callback
 type StructField[T any] struct {
-	name        string
-	description string
-	ptr         *T
-	callback    func(*Schema, *T)
-	Validators  []Validator
-	wasAssigned bool // Track if a non-nil value was assigned
+	name         string
+	description  string
+	ptr          *T
+	callback     func(*Schema, *T)
+	Validators   []Validator
+	wasAssigned  bool // Track if a non-nil value was assigned
+	defaultValue T
+	hasDefault   bool
 }
 
 func (f *StructField[T]) Name() string {
@@ -39,6 +41,12 @@ func (f *StructField[T]) SetDescription(description string) {
 func (f *StructField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
+		// Apply default value if available
+		if f.hasDefault {
+			*f.ptr = f.defaultValue
+			f.wasAssigned = true
+			schema.SetFieldPresent(f.name)
+		}
 		return nil
 	}
 
@@ -76,6 +84,11 @@ func (f *StructField[T]) AppendValidators(validators []Validator) {
 
 func (f *StructField[T]) SetCallback(callback func(*Schema, *T)) {
 	f.callback = callback
+}
+
+func (f *StructField[T]) SetDefaultValue(defaultValue T) {
+	f.defaultValue = defaultValue
+	f.hasDefault = true
 }
 
 // Struct creates a struct field
