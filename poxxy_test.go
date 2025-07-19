@@ -109,6 +109,226 @@ func TestPoxxy_Map(t *testing.T) {
 	}
 }
 
+func TestPoxxy_Map_DefaultValue(t *testing.T) {
+	// Test default value when field is missing
+	t.Run("default value applied when field missing", func(t *testing.T) {
+		var userSettings map[string]string
+		defaultSettings := map[string]string{
+			"theme":    "dark",
+			"language": "en",
+			"timezone": "UTC",
+		}
+
+		schema := NewSchema(
+			Map("settings", &userSettings,
+				WithDefault(defaultSettings),
+			),
+		)
+
+		// Apply empty JSON - should use default value
+		jsonData := `{}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		if len(userSettings) != 3 {
+			t.Errorf("Schema.ApplyJSON() userSettings length = %v, want %v", len(userSettings), 3)
+		}
+		if userSettings["theme"] != "dark" {
+			t.Errorf("Schema.ApplyJSON() userSettings[\"theme\"] = %v, want %v", userSettings["theme"], "dark")
+		}
+		if userSettings["language"] != "en" {
+			t.Errorf("Schema.ApplyJSON() userSettings[\"language\"] = %v, want %v", userSettings["language"], "en")
+		}
+		if userSettings["timezone"] != "UTC" {
+			t.Errorf("Schema.ApplyJSON() userSettings[\"timezone\"] = %v, want %v", userSettings["timezone"], "UTC")
+		}
+	})
+
+	// Test that provided value overrides default
+	t.Run("provided value overrides default", func(t *testing.T) {
+		var userSettings map[string]string
+		defaultSettings := map[string]string{
+			"theme":    "dark",
+			"language": "en",
+			"timezone": "UTC",
+		}
+
+		schema := NewSchema(
+			Map("settings", &userSettings,
+				WithDefault(defaultSettings),
+			),
+		)
+
+		// Apply JSON with settings data - should override default
+		jsonData := `{"settings": {"theme": "light", "language": "es", "notifications": "on"}}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		if len(userSettings) != 3 {
+			t.Errorf("Schema.ApplyJSON() userSettings length = %v, want %v", len(userSettings), 3)
+		}
+		if userSettings["theme"] != "light" {
+			t.Errorf("Schema.ApplyJSON() userSettings[\"theme\"] = %v, want %v", userSettings["theme"], "light")
+		}
+		if userSettings["language"] != "es" {
+			t.Errorf("Schema.ApplyJSON() userSettings[\"language\"] = %v, want %v", userSettings["language"], "es")
+		}
+		if userSettings["notifications"] != "on" {
+			t.Errorf("Schema.ApplyJSON() userSettings[\"notifications\"] = %v, want %v", userSettings["notifications"], "on")
+		}
+		// Default value should not be present
+		if _, exists := userSettings["timezone"]; exists {
+			t.Errorf("Schema.ApplyJSON() userSettings[\"timezone\"] should not exist, but got %v", userSettings["timezone"])
+		}
+	})
+
+	// Test default value with nil field
+	t.Run("default value not applied when field is explicitly nil", func(t *testing.T) {
+		var userSettings map[string]string
+		defaultSettings := map[string]string{
+			"theme":    "dark",
+			"language": "en",
+			"timezone": "UTC",
+		}
+
+		schema := NewSchema(
+			Map("settings", &userSettings,
+				WithDefault(defaultSettings),
+			),
+		)
+
+		// Apply JSON with nil settings - should NOT use default value when explicitly null
+		jsonData := `{"settings": null}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		// When field is explicitly null, default value should not be applied
+		// The field should remain unassigned (nil map)
+		if userSettings != nil {
+			t.Errorf("Schema.ApplyJSON() userSettings = %v, want nil", userSettings)
+		}
+	})
+
+	// Test SetDefaultValue method directly
+	t.Run("SetDefaultValue method works", func(t *testing.T) {
+		var userSettings map[string]string
+		defaultSettings := map[string]string{
+			"theme":    "method_default",
+			"language": "fr",
+			"timezone": "EST",
+		}
+
+		// Create map field directly to test SetDefaultValue method
+		mapField := &MapField[string, string]{
+			name: "settings",
+			ptr:  &userSettings,
+		}
+
+		// Set default value directly
+		mapField.SetDefaultValue(defaultSettings)
+
+		// Create schema with the field
+		schema := NewSchema(mapField)
+
+		// Apply empty JSON - should use default value
+		jsonData := `{}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		if len(userSettings) != 3 {
+			t.Errorf("Schema.ApplyJSON() userSettings length = %v, want %v", len(userSettings), 3)
+		}
+		if userSettings["theme"] != "method_default" {
+			t.Errorf("Schema.ApplyJSON() userSettings[\"theme\"] = %v, want %v", userSettings["theme"], "method_default")
+		}
+		if userSettings["language"] != "fr" {
+			t.Errorf("Schema.ApplyJSON() userSettings[\"language\"] = %v, want %v", userSettings["language"], "fr")
+		}
+		if userSettings["timezone"] != "EST" {
+			t.Errorf("Schema.ApplyJSON() userSettings[\"timezone\"] = %v, want %v", userSettings["timezone"], "EST")
+		}
+	})
+
+	// Test with different key and value types
+	t.Run("works with different key and value types", func(t *testing.T) {
+		var userScores map[int]float64
+		defaultScores := map[int]float64{
+			1: 95.5,
+			2: 87.2,
+			3: 92.8,
+		}
+
+		schema := NewSchema(
+			Map("scores", &userScores,
+				WithDefault(defaultScores),
+			),
+		)
+
+		// Apply empty JSON - should use default value
+		jsonData := `{}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		if len(userScores) != 3 {
+			t.Errorf("Schema.ApplyJSON() userScores length = %v, want %v", len(userScores), 3)
+		}
+		if userScores[1] != 95.5 {
+			t.Errorf("Schema.ApplyJSON() userScores[1] = %v, want %v", userScores[1], 95.5)
+		}
+		if userScores[2] != 87.2 {
+			t.Errorf("Schema.ApplyJSON() userScores[2] = %v, want %v", userScores[2], 87.2)
+		}
+		if userScores[3] != 92.8 {
+			t.Errorf("Schema.ApplyJSON() userScores[3] = %v, want %v", userScores[3], 92.8)
+		}
+	})
+
+	// Test with callback functionality
+	t.Run("works with callback functionality", func(t *testing.T) {
+		var userSettings map[string]string
+		defaultSettings := map[string]string{
+			"theme":    "dark",
+			"language": "en",
+		}
+
+		schema := NewSchema(
+			Map("settings", &userSettings,
+				WithDefault(defaultSettings),
+				WithSubSchemaMap(func(s *Schema, k string, v string) {
+					// Optional validation for individual map entries
+				}),
+			),
+		)
+
+		// Apply empty JSON - should use default value
+		jsonData := `{}`
+		err := schema.ApplyJSON([]byte(jsonData))
+		if err != nil {
+			t.Errorf("Schema.ApplyJSON() error = %v", err)
+		}
+
+		if len(userSettings) != 2 {
+			t.Errorf("Schema.ApplyJSON() userSettings length = %v, want %v", len(userSettings), 2)
+		}
+		if userSettings["theme"] != "dark" {
+			t.Errorf("Schema.ApplyJSON() userSettings[\"theme\"] = %v, want %v", userSettings["theme"], "dark")
+		}
+		if userSettings["language"] != "en" {
+			t.Errorf("Schema.ApplyJSON() userSettings[\"language\"] = %v, want %v", userSettings["language"], "en")
+		}
+	})
+}
+
 func TestPoxxy_Slice(t *testing.T) {
 	type User struct {
 		Name string

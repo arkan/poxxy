@@ -6,12 +6,14 @@ import (
 
 // MapField represents a map field
 type MapField[K comparable, V any] struct {
-	name        string
-	description string
-	ptr         *map[K]V
-	callback    func(*Schema, K, V)
-	Validators  []Validator
-	wasAssigned bool // Track if a non-nil value was assigned
+	name         string
+	description  string
+	ptr          *map[K]V
+	callback     func(*Schema, K, V)
+	Validators   []Validator
+	wasAssigned  bool // Track if a non-nil value was assigned
+	defaultValue map[K]V
+	hasDefault   bool
 }
 
 func (f *MapField[K, V]) Name() string {
@@ -39,6 +41,12 @@ func (f *MapField[K, V]) SetDescription(description string) {
 func (f *MapField[K, V]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
+		// Apply default value if available
+		if f.hasDefault {
+			*f.ptr = f.defaultValue
+			f.wasAssigned = true
+			schema.SetFieldPresent(f.name)
+		}
 		return nil
 	}
 
@@ -98,6 +106,11 @@ func (f *MapField[K, V]) AppendValidators(validators []Validator) {
 
 func (f *MapField[K, V]) SetCallback(callback func(*Schema, K, V)) {
 	f.callback = callback
+}
+
+func (f *MapField[K, V]) SetDefaultValue(defaultValue map[K]V) {
+	f.defaultValue = defaultValue
+	f.hasDefault = true
 }
 
 // Map creates a map field

@@ -68,7 +68,45 @@ func ExampleStructWithDefault() {
 	// Output: User: {Name:Anonymous Age:25}
 }
 
+func ExampleMapWithDefault() {
+	var userSettings map[string]string
+	defaultSettings := map[string]string{
+		"theme":    "dark",
+		"language": "en",
+		"timezone": "UTC",
+	}
+
+	schema := poxxy.NewSchema(
+		poxxy.Map("settings", &userSettings,
+			poxxy.WithDefault(defaultSettings),
+		),
+	)
+
+	// Apply empty JSON - should use default value
+	jsonData := `{}`
+	err := schema.ApplyJSON([]byte(jsonData))
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Settings: %v\n", userSettings)
+	// Output: Settings: map[language:en theme:dark timezone:UTC]
+}
+
 func main() {
+	fmt.Println("=== Basic Examples ===\n")
+
+	// Demonstrate struct with default values
+	fmt.Println("1. Struct with default values:")
+	ExampleStructWithDefault()
+	fmt.Println()
+
+	// Demonstrate map with default values
+	fmt.Println("2. Map with default values:")
+	ExampleMapWithDefault()
+	fmt.Println()
+
 	data := map[string]interface{}{
 		"profile": map[string]interface{}{
 			"name":  "John Doe",
