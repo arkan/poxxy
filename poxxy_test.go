@@ -3,9 +3,10 @@ package poxxy
 import (
 	"database/sql"
 	"fmt"
-	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPoxxy_BasicTypes(t *testing.T) {
@@ -33,27 +34,15 @@ func TestPoxxy_BasicTypes(t *testing.T) {
 		t.Errorf("Schema.ApplyJSON() error = %v", err)
 	}
 
-	if name != "test" {
-		t.Errorf("Schema.ApplyJSON() name = %v, want %v", name, "test")
-	}
-	if age != 20 {
-		t.Errorf("Schema.ApplyJSON() age = %v, want %v", age, 20)
-	}
-	if !isAdmin {
-		t.Errorf("Schema.ApplyJSON() isAdmin = %v, want %v", isAdmin, true)
-	}
-	if len(tags) != 2 || !reflect.DeepEqual(tags, []string{"tag1", "tag2"}) {
-		t.Errorf("Schema.ApplyJSON() tags = %v, want %v", tags, []string{"tag1", "tag2"})
-	}
-	if label == nil || *label != "okay" {
-		t.Errorf("Schema.ApplyJSON() label = %v, want %v", label, "okay")
-	}
-	if label2 != nil {
-		t.Errorf("Schema.ApplyJSON() label2 = %v, want %v", label2, nil)
-	}
-	if label3 == nil || *label3 != 0 {
-		t.Errorf("Schema.ApplyJSON() label3 = %v, want %v", label3, 0)
-	}
+	assert.Equal(t, "test", name)
+	assert.Equal(t, 20, age)
+	assert.Equal(t, true, isAdmin)
+	assert.Equal(t, []string{"tag1", "tag2"}, tags)
+	assert.NotNil(t, label)
+	assert.Equal(t, "okay", *label)
+	assert.Nil(t, label2)
+	assert.NotNil(t, label3)
+	assert.Equal(t, int64(0), *label3)
 }
 
 func TestPoxxy_Map(t *testing.T) {
@@ -93,20 +82,12 @@ func TestPoxxy_Map(t *testing.T) {
 
 	jsonData := `{"name": "test", "age": 20, "preferences": {"color": "blue", "size": "large"}}`
 	err := schema.ApplyJSON([]byte(jsonData))
-	if err != nil {
-		t.Errorf("Schema.ApplyJSON() error = %v", err)
-	}
+	assert.NoError(t, err)
 
-	if user.Name != "test" {
-		t.Errorf("Schema.ApplyJSON() name = %v, want %v", user.Name, "test")
-	}
-	if user.Age != 20 {
-		t.Errorf("Schema.ApplyJSON() age = %v, want %v", user.Age, 20)
-	}
+	assert.Equal(t, "test", user.Name)
+	assert.Equal(t, 20, user.Age)
 	expectedPreferences := map[string]string{"color": "blue", "size": "large"}
-	if !reflect.DeepEqual(user.Preferences, expectedPreferences) {
-		t.Errorf("Schema.ApplyJSON() preferences = %v, want %v", user.Preferences, expectedPreferences)
-	}
+	assert.Equal(t, expectedPreferences, user.Preferences)
 }
 
 func TestPoxxy_Map_DefaultValue(t *testing.T) {
@@ -128,22 +109,12 @@ func TestPoxxy_Map_DefaultValue(t *testing.T) {
 		// Apply empty JSON - should use default value
 		jsonData := `{}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
+		assert.NoError(t, err)
 
-		if len(userSettings) != 3 {
-			t.Errorf("Schema.ApplyJSON() userSettings length = %v, want %v", len(userSettings), 3)
-		}
-		if userSettings["theme"] != "dark" {
-			t.Errorf("Schema.ApplyJSON() userSettings[\"theme\"] = %v, want %v", userSettings["theme"], "dark")
-		}
-		if userSettings["language"] != "en" {
-			t.Errorf("Schema.ApplyJSON() userSettings[\"language\"] = %v, want %v", userSettings["language"], "en")
-		}
-		if userSettings["timezone"] != "UTC" {
-			t.Errorf("Schema.ApplyJSON() userSettings[\"timezone\"] = %v, want %v", userSettings["timezone"], "UTC")
-		}
+		assert.Equal(t, 3, len(userSettings))
+		assert.Equal(t, "dark", userSettings["theme"])
+		assert.Equal(t, "en", userSettings["language"])
+		assert.Equal(t, "UTC", userSettings["timezone"])
 	})
 
 	// Test that provided value overrides default
@@ -164,26 +135,13 @@ func TestPoxxy_Map_DefaultValue(t *testing.T) {
 		// Apply JSON with settings data - should override default
 		jsonData := `{"settings": {"theme": "light", "language": "es", "notifications": "on"}}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
+		assert.NoError(t, err)
 
-		if len(userSettings) != 3 {
-			t.Errorf("Schema.ApplyJSON() userSettings length = %v, want %v", len(userSettings), 3)
-		}
-		if userSettings["theme"] != "light" {
-			t.Errorf("Schema.ApplyJSON() userSettings[\"theme\"] = %v, want %v", userSettings["theme"], "light")
-		}
-		if userSettings["language"] != "es" {
-			t.Errorf("Schema.ApplyJSON() userSettings[\"language\"] = %v, want %v", userSettings["language"], "es")
-		}
-		if userSettings["notifications"] != "on" {
-			t.Errorf("Schema.ApplyJSON() userSettings[\"notifications\"] = %v, want %v", userSettings["notifications"], "on")
-		}
-		// Default value should not be present
-		if _, exists := userSettings["timezone"]; exists {
-			t.Errorf("Schema.ApplyJSON() userSettings[\"timezone\"] should not exist, but got %v", userSettings["timezone"])
-		}
+		assert.Equal(t, 3, len(userSettings))
+		assert.Equal(t, "light", userSettings["theme"])
+		assert.Equal(t, "es", userSettings["language"])
+		assert.Equal(t, "on", userSettings["notifications"])
+		assert.Equal(t, "", userSettings["timezone"]) // It must be empty.
 	})
 
 	// Test default value with nil field
@@ -204,15 +162,11 @@ func TestPoxxy_Map_DefaultValue(t *testing.T) {
 		// Apply JSON with nil settings - should NOT use default value when explicitly null
 		jsonData := `{"settings": null}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
+		assert.NoError(t, err)
 
 		// When field is explicitly null, default value should not be applied
 		// The field should remain unassigned (nil map)
-		if userSettings != nil {
-			t.Errorf("Schema.ApplyJSON() userSettings = %v, want nil", userSettings)
-		}
+		assert.Nil(t, userSettings)
 	})
 
 	// Test SetDefaultValue method directly
@@ -239,22 +193,12 @@ func TestPoxxy_Map_DefaultValue(t *testing.T) {
 		// Apply empty JSON - should use default value
 		jsonData := `{}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
+		assert.NoError(t, err)
 
-		if len(userSettings) != 3 {
-			t.Errorf("Schema.ApplyJSON() userSettings length = %v, want %v", len(userSettings), 3)
-		}
-		if userSettings["theme"] != "method_default" {
-			t.Errorf("Schema.ApplyJSON() userSettings[\"theme\"] = %v, want %v", userSettings["theme"], "method_default")
-		}
-		if userSettings["language"] != "fr" {
-			t.Errorf("Schema.ApplyJSON() userSettings[\"language\"] = %v, want %v", userSettings["language"], "fr")
-		}
-		if userSettings["timezone"] != "EST" {
-			t.Errorf("Schema.ApplyJSON() userSettings[\"timezone\"] = %v, want %v", userSettings["timezone"], "EST")
-		}
+		assert.Equal(t, 3, len(userSettings))
+		assert.Equal(t, "method_default", userSettings["theme"])
+		assert.Equal(t, "fr", userSettings["language"])
+		assert.Equal(t, "EST", userSettings["timezone"])
 	})
 
 	// Test with different key and value types
@@ -275,22 +219,11 @@ func TestPoxxy_Map_DefaultValue(t *testing.T) {
 		// Apply empty JSON - should use default value
 		jsonData := `{}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
-
-		if len(userScores) != 3 {
-			t.Errorf("Schema.ApplyJSON() userScores length = %v, want %v", len(userScores), 3)
-		}
-		if userScores[1] != 95.5 {
-			t.Errorf("Schema.ApplyJSON() userScores[1] = %v, want %v", userScores[1], 95.5)
-		}
-		if userScores[2] != 87.2 {
-			t.Errorf("Schema.ApplyJSON() userScores[2] = %v, want %v", userScores[2], 87.2)
-		}
-		if userScores[3] != 92.8 {
-			t.Errorf("Schema.ApplyJSON() userScores[3] = %v, want %v", userScores[3], 92.8)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, 3, len(userScores))
+		assert.Equal(t, 95.5, userScores[1])
+		assert.Equal(t, 87.2, userScores[2])
+		assert.Equal(t, 92.8, userScores[3])
 	})
 
 	// Test with callback functionality
@@ -313,19 +246,11 @@ func TestPoxxy_Map_DefaultValue(t *testing.T) {
 		// Apply empty JSON - should use default value
 		jsonData := `{}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
+		assert.NoError(t, err)
 
-		if len(userSettings) != 2 {
-			t.Errorf("Schema.ApplyJSON() userSettings length = %v, want %v", len(userSettings), 2)
-		}
-		if userSettings["theme"] != "dark" {
-			t.Errorf("Schema.ApplyJSON() userSettings[\"theme\"] = %v, want %v", userSettings["theme"], "dark")
-		}
-		if userSettings["language"] != "en" {
-			t.Errorf("Schema.ApplyJSON() userSettings[\"language\"] = %v, want %v", userSettings["language"], "en")
-		}
+		assert.Equal(t, 2, len(userSettings))
+		assert.Equal(t, "dark", userSettings["theme"])
+		assert.Equal(t, "en", userSettings["language"])
 	})
 }
 
@@ -348,28 +273,13 @@ func TestPoxxy_Slice(t *testing.T) {
 
 	jsonData := `{"users": [{"name": "test", "age": 20}, {"name": "test2", "age": 21}]}`
 	err := schema.ApplyJSON([]byte(jsonData))
-	if err != nil {
-		t.Errorf("Schema.ApplyJSON() error = %v", err)
-	}
+	assert.NoError(t, err)
 
 	expectedUsers := []User{{Name: "test", Age: 20}, {Name: "test2", Age: 21}}
-	if len(users) != 2 {
-		t.Errorf("Schema.ApplyJSON() users = %v, want %v", users, expectedUsers)
-	}
-
-	if users[0].Name != "test" {
-		t.Errorf("Schema.ApplyJSON() users[0].Name = %v, want %v", users[0].Name, "test")
-	}
-	if users[0].Age != 20 {
-		t.Errorf("Schema.ApplyJSON() users[0].Age = %v, want %v", users[0].Age, 20)
-	}
-
-	if users[1].Name != "test2" {
-		t.Errorf("Schema.ApplyJSON() users[1].Name = %v, want %v", users[1].Name, "test2")
-	}
-	if users[1].Age != 21 {
-		t.Errorf("Schema.ApplyJSON() users[1].Age = %v, want %v", users[1].Age, 21)
-	}
+	assert.Equal(t, expectedUsers, users)
+	assert.Equal(t, 20, users[0].Age)
+	assert.Equal(t, "test2", users[1].Name)
+	assert.Equal(t, 21, users[1].Age)
 }
 
 func TestPoxxy_Boolean(t *testing.T) {
@@ -381,13 +291,8 @@ func TestPoxxy_Boolean(t *testing.T) {
 
 		jsonData := `{"isAdmin": true}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
-
-		if !isAdmin {
-			t.Errorf("Schema.ApplyJSON() isAdmin = %v, want %v", isAdmin, true)
-		}
+		assert.NoError(t, err)
+		assert.True(t, isAdmin)
 	}
 
 	{
@@ -398,13 +303,9 @@ func TestPoxxy_Boolean(t *testing.T) {
 
 		jsonData := `{"isAdmin": true}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
-
-		if isAdmin != nil && *isAdmin != true {
-			t.Errorf("Schema.ApplyJSON() isAdmin = %v, want %v", *isAdmin, true)
-		}
+		assert.NoError(t, err)
+		assert.NotNil(t, isAdmin)
+		assert.True(t, *isAdmin)
 	}
 
 	{
@@ -415,13 +316,8 @@ func TestPoxxy_Boolean(t *testing.T) {
 
 		jsonData := `{}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err == nil {
-			t.Errorf("Schema.ApplyJSON() error = nil, want not nil")
-		}
-
-		if !strings.Contains(err.Error(), "isAdmin: field is required") {
-			t.Errorf("Schema.ApplyJSON() error = %v, want %v", err, "isAdmin: field is required")
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "isAdmin: field is required", err.Error())
 	}
 }
 
@@ -439,9 +335,7 @@ func TestPoxxy_Struct_Required(t *testing.T) {
 
 		jsonData := `{}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err == nil {
-			t.Errorf("Schema.ApplyJSON() error = nil, want not nil")
-		}
+		assert.Error(t, err)
 	}
 	{
 		var user User
@@ -454,16 +348,9 @@ func TestPoxxy_Struct_Required(t *testing.T) {
 
 		jsonData := `{"user": {"name": "test", "age": 20}}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
-
-		if user.Name != "test" {
-			t.Errorf("Schema.ApplyJSON() user.Name = %v, want %v", user.Name, "test")
-		}
-		if user.Age != 20 {
-			t.Errorf("Schema.ApplyJSON() user.Age = %v, want %v", user.Age, 20)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, "test", user.Name)
+		assert.Equal(t, 20, user.Age)
 	}
 }
 
@@ -515,29 +402,12 @@ func TestPoxxy_Complex(t *testing.T) {
 	}
 	`
 	err := schema.ApplyJSON([]byte(jsonData))
-	if err != nil {
-		t.Errorf("Schema.ApplyJSON() error = %v", err)
-	}
-
-	if user.House1.Address != "123 Main St" {
-		t.Errorf("Schema.ApplyJSON() user.House1.Address = %v, want %v", user.House1.Address, "123 Main St")
-	}
-
-	if user.House2 != nil {
-		t.Errorf("Schema.ApplyJSON() user.House2 = %v, want %v", user.House2, nil)
-	}
-
-	if user.House1.Price != 100000 {
-		t.Errorf("Schema.ApplyJSON() user.House1.Price = %v, want %v", user.House1.Price, 100000)
-	}
-
-	if len(user.House1.Rooms) != 2 {
-		t.Errorf("Schema.ApplyJSON() user.House1.Rooms = %v, want %v", user.House1.Rooms, []string{"bedroom", "bathroom"})
-	}
-
-	if user.House1.Properties["color"] != "red" {
-		t.Errorf("Schema.ApplyJSON() user.House1.Properties = %v, want %v", user.House1.Properties, map[string]string{"color": "red"})
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, "123 Main St", user.House1.Address)
+	assert.Nil(t, user.House2)
+	assert.Equal(t, 100000, user.House1.Price)
+	assert.Equal(t, 2, len(user.House1.Rooms))
+	assert.Equal(t, "red", user.House1.Properties["color"])
 }
 
 func TestPoxxy_SQLNullFields(t *testing.T) {
@@ -554,25 +424,11 @@ func TestPoxxy_SQLNullFields(t *testing.T) {
 
 	jsonData := `{"name": "test", "age": 20}`
 	err := schema.ApplyJSON([]byte(jsonData))
-	if err != nil {
-		t.Errorf("Schema.ApplyJSON() error = %v", err)
-	}
-
-	if !user.Name.Valid {
-		t.Errorf("Schema.ApplyJSON() user.Name = %v, want %v", user.Name.String, "test")
-	}
-
-	if user.Name.String != "test" {
-		t.Errorf("Schema.ApplyJSON() user.Name = %v, want %v", user.Name.String, "test")
-	}
-
-	if !user.Age.Valid {
-		t.Errorf("Schema.ApplyJSON() user.Age = %v, want %v", user.Age.Int64, 20)
-	}
-
-	if user.Age.Int64 != 20 {
-		t.Errorf("Schema.ApplyJSON() user.Age = %v, want %v", user.Age.Int64, 20)
-	}
+	assert.NoError(t, err)
+	assert.True(t, user.Name.Valid)
+	assert.Equal(t, "test", user.Name.String)
+	assert.True(t, user.Age.Valid)
+	assert.Equal(t, int64(20), user.Age.Int64)
 }
 
 func TestPoxxy_Struct_DefaultValue(t *testing.T) {
@@ -599,16 +455,9 @@ func TestPoxxy_Struct_DefaultValue(t *testing.T) {
 		// Apply empty JSON - should use default value
 		jsonData := `{}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
-
-		if user.Name != "Default User" {
-			t.Errorf("Schema.ApplyJSON() user.Name = %v, want %v", user.Name, "Default User")
-		}
-		if user.Age != 25 {
-			t.Errorf("Schema.ApplyJSON() user.Age = %v, want %v", user.Age, 25)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, "Default User", user.Name)
+		assert.Equal(t, 25, user.Age)
 	})
 
 	// Test that provided value overrides default
@@ -629,16 +478,9 @@ func TestPoxxy_Struct_DefaultValue(t *testing.T) {
 		// Apply JSON with user data - should override default
 		jsonData := `{"user": {"name": "John Doe", "age": 30}}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
-
-		if user.Name != "John Doe" {
-			t.Errorf("Schema.ApplyJSON() user.Name = %v, want %v", user.Name, "John Doe")
-		}
-		if user.Age != 30 {
-			t.Errorf("Schema.ApplyJSON() user.Age = %v, want %v", user.Age, 30)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, "John Doe", user.Name)
+		assert.Equal(t, 30, user.Age)
 	})
 
 	// Test default value with nil field
@@ -659,18 +501,12 @@ func TestPoxxy_Struct_DefaultValue(t *testing.T) {
 		// Apply JSON with nil user - should NOT use default value when explicitly null
 		jsonData := `{"user": null}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
+		assert.NoError(t, err)
 
 		// When field is explicitly null, default value should not be applied
 		// The field should remain unassigned (zero values)
-		if user.Name != "" {
-			t.Errorf("Schema.ApplyJSON() user.Name = %v, want empty string", user.Name)
-		}
-		if user.Age != 0 {
-			t.Errorf("Schema.ApplyJSON() user.Age = %v, want 0", user.Age)
-		}
+		assert.Equal(t, "", user.Name)
+		assert.Equal(t, 0, user.Age)
 	})
 
 	// Test SetDefaultValue method directly
@@ -699,16 +535,9 @@ func TestPoxxy_Struct_DefaultValue(t *testing.T) {
 		// Apply empty JSON - should use default value
 		jsonData := `{}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
-
-		if user.Name != "Method Default" {
-			t.Errorf("Schema.ApplyJSON() user.Name = %v, want %v", user.Name, "Method Default")
-		}
-		if user.Age != 42 {
-			t.Errorf("Schema.ApplyJSON() user.Age = %v, want %v", user.Age, 42)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, "Method Default", user.Name)
+		assert.Equal(t, 42, user.Age)
 	})
 }
 
@@ -734,22 +563,11 @@ func TestPoxxy_NestedMap_DefaultValue(t *testing.T) {
 		// Apply empty JSON - should use default value
 		jsonData := `{}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
-
-		if len(userPreferences) != 3 {
-			t.Errorf("Schema.ApplyJSON() userPreferences length = %v, want %v", len(userPreferences), 3)
-		}
-		if userPreferences["theme"] != "dark" {
-			t.Errorf("Schema.ApplyJSON() userPreferences[\"theme\"] = %v, want %v", userPreferences["theme"], "dark")
-		}
-		if userPreferences["language"] != "en" {
-			t.Errorf("Schema.ApplyJSON() userPreferences[\"language\"] = %v, want %v", userPreferences["language"], "en")
-		}
-		if userPreferences["timezone"] != "UTC" {
-			t.Errorf("Schema.ApplyJSON() userPreferences[\"timezone\"] = %v, want %v", userPreferences["timezone"], "UTC")
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, 3, len(userPreferences))
+		assert.Equal(t, "dark", userPreferences["theme"])
+		assert.Equal(t, "en", userPreferences["language"])
+		assert.Equal(t, "UTC", userPreferences["timezone"])
 	})
 
 	// Test that provided value overrides default
@@ -773,26 +591,13 @@ func TestPoxxy_NestedMap_DefaultValue(t *testing.T) {
 		// Apply JSON with preferences data - should override default
 		jsonData := `{"preferences": {"theme": "light", "language": "es", "notifications": "on"}}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
-
-		if len(userPreferences) != 3 {
-			t.Errorf("Schema.ApplyJSON() userPreferences length = %v, want %v", len(userPreferences), 3)
-		}
-		if userPreferences["theme"] != "light" {
-			t.Errorf("Schema.ApplyJSON() userPreferences[\"theme\"] = %v, want %v", userPreferences["theme"], "light")
-		}
-		if userPreferences["language"] != "es" {
-			t.Errorf("Schema.ApplyJSON() userPreferences[\"language\"] = %v, want %v", userPreferences["language"], "es")
-		}
-		if userPreferences["notifications"] != "on" {
-			t.Errorf("Schema.ApplyJSON() userPreferences[\"notifications\"] = %v, want %v", userPreferences["notifications"], "on")
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, 3, len(userPreferences))
+		assert.Equal(t, "light", userPreferences["theme"])
+		assert.Equal(t, "es", userPreferences["language"])
+		assert.Equal(t, "on", userPreferences["notifications"])
 		// Default value should not be present
-		if _, exists := userPreferences["timezone"]; exists {
-			t.Errorf("Schema.ApplyJSON() userPreferences[\"timezone\"] should not exist, but got %v", userPreferences["timezone"])
-		}
+		assert.Empty(t, userPreferences["timezone"])
 	})
 
 	// Test default value with nil field
@@ -816,15 +621,11 @@ func TestPoxxy_NestedMap_DefaultValue(t *testing.T) {
 		// Apply JSON with nil preferences - should NOT use default value when explicitly null
 		jsonData := `{"preferences": null}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
+		assert.NoError(t, err)
 
 		// When field is explicitly null, default value should not be applied
 		// The field should remain unassigned (nil map)
-		if userPreferences != nil {
-			t.Errorf("Schema.ApplyJSON() userPreferences = %v, want nil", userPreferences)
-		}
+		assert.Nil(t, userPreferences)
 	})
 
 	// Test SetDefaultValue method directly
@@ -856,22 +657,12 @@ func TestPoxxy_NestedMap_DefaultValue(t *testing.T) {
 		// Apply empty JSON - should use default value
 		jsonData := `{}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
+		assert.NoError(t, err)
 
-		if len(userPreferences) != 3 {
-			t.Errorf("Schema.ApplyJSON() userPreferences length = %v, want %v", len(userPreferences), 3)
-		}
-		if userPreferences["theme"] != "method_default" {
-			t.Errorf("Schema.ApplyJSON() userPreferences[\"theme\"] = %v, want %v", userPreferences["theme"], "method_default")
-		}
-		if userPreferences["language"] != "fr" {
-			t.Errorf("Schema.ApplyJSON() userPreferences[\"language\"] = %v, want %v", userPreferences["language"], "fr")
-		}
-		if userPreferences["timezone"] != "EST" {
-			t.Errorf("Schema.ApplyJSON() userPreferences[\"timezone\"] = %v, want %v", userPreferences["timezone"], "EST")
-		}
+		assert.Equal(t, 3, len(userPreferences))
+		assert.Equal(t, "method_default", userPreferences["theme"])
+		assert.Equal(t, "fr", userPreferences["language"])
+		assert.Equal(t, "EST", userPreferences["timezone"])
 	})
 
 	// Test with different key and value types
@@ -895,21 +686,11 @@ func TestPoxxy_NestedMap_DefaultValue(t *testing.T) {
 		// Apply empty JSON - should use default value
 		jsonData := `{}`
 		err := schema.ApplyJSON([]byte(jsonData))
-		if err != nil {
-			t.Errorf("Schema.ApplyJSON() error = %v", err)
-		}
+		assert.NoError(t, err)
 
-		if len(userScores) != 3 {
-			t.Errorf("Schema.ApplyJSON() userScores length = %v, want %v", len(userScores), 3)
-		}
-		if userScores[1] != 95.5 {
-			t.Errorf("Schema.ApplyJSON() userScores[1] = %v, want %v", userScores[1], 95.5)
-		}
-		if userScores[2] != 87.2 {
-			t.Errorf("Schema.ApplyJSON() userScores[2] = %v, want %v", userScores[2], 87.2)
-		}
-		if userScores[3] != 92.8 {
-			t.Errorf("Schema.ApplyJSON() userScores[3] = %v, want %v", userScores[3], 92.8)
-		}
+		assert.Equal(t, 3, len(userScores))
+		assert.Equal(t, 95.5, userScores[1])
+		assert.Equal(t, 87.2, userScores[2])
+		assert.Equal(t, 92.8, userScores[3])
 	})
 }

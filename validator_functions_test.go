@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRequired(t *testing.T) {
@@ -714,9 +716,7 @@ func TestNotEmpty(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name+" should pass", func(t *testing.T) {
 			err := validator.Validate(tc.value, "testField")
-			if err != nil {
-				t.Errorf("Expected no error for %s, got: %v", tc.name, err)
-			}
+			assert.NoError(t, err)
 		})
 	}
 
@@ -737,9 +737,7 @@ func TestNotEmpty(t *testing.T) {
 	for _, tc := range failCases {
 		t.Run(tc.name+" should fail", func(t *testing.T) {
 			err := validator.Validate(tc.value, "testField")
-			if err == nil {
-				t.Errorf("Expected error for %s, got nil", tc.name)
-			}
+			assert.Error(t, err)
 		})
 	}
 }
@@ -756,25 +754,15 @@ func TestValidatorWithMessage(t *testing.T) {
 		}
 
 		err := schema.Apply(data)
-		if err == nil {
-			t.Error("Expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "Custom required message") {
-			t.Errorf("Expected 'Custom required message', got: %s", err.Error())
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "test: Custom required message", err.Error())
 	})
 
 	t.Run("NonZero custom error message", func(t *testing.T) {
 		validator := NotEmpty().WithMessage("Custom zero message")
 		err := validator.Validate("", "field")
-		if err == nil {
-			t.Error("Expected error, got nil")
-			return
-		}
-
-		if err.Error() != "Custom zero message" {
-			t.Errorf("Expected 'Custom zero message', got: %s", err.Error())
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "Custom zero message", err.Error())
 	})
 }
 
@@ -806,21 +794,13 @@ func TestSlice(t *testing.T) {
 		}
 
 		err := schema.Apply(data)
-		if err != nil {
-			t.Errorf("Expected no error, got: %v", err)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(people))
 
-		if len(people) != 2 {
-			t.Errorf("Expected 2 people, got %d", len(people))
-		}
-
-		if people[0].Name != "Alice" || people[0].Age != 25 {
-			t.Errorf("Expected Alice, 25, got %s, %d", people[0].Name, people[0].Age)
-		}
-
-		if people[1].Name != "Bob" || people[1].Age != 30 {
-			t.Errorf("Expected Bob, 30, got %s, %d", people[1].Name, people[1].Age)
-		}
+		assert.Equal(t, "Alice", people[0].Name)
+		assert.Equal(t, 25, people[0].Age)
+		assert.Equal(t, "Bob", people[1].Name)
+		assert.Equal(t, 30, people[1].Age)
 	})
 
 	// Test validation failure on element
@@ -845,14 +825,8 @@ func TestSlice(t *testing.T) {
 		}
 
 		err := schema.Apply(data)
-		if err == nil {
-			t.Error("Expected validation error, got nil")
-		}
-
-		// Should report validation errors for element 1
-		if !strings.Contains(err.Error(), "element 1") {
-			t.Errorf("Expected error to mention 'element 1', got: %v", err)
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "people: element 1: name: value cannot be empty; age: value must be at least 0", err.Error())
 	})
 
 	// Test slice-level validation
@@ -876,9 +850,8 @@ func TestSlice(t *testing.T) {
 		}
 
 		err := schema.Apply(data)
-		if err == nil {
-			t.Error("Expected validation error for slice length, got nil")
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "people: must have at least 2 items", err.Error())
 	})
 
 	// Test with []interface{} input
@@ -902,13 +875,8 @@ func TestSlice(t *testing.T) {
 		}
 
 		err := schema.Apply(data)
-		if err != nil {
-			t.Errorf("Expected no error, got: %v", err)
-		}
-
-		if len(people) != 2 {
-			t.Errorf("Expected 2 people, got %d", len(people))
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(people))
 	})
 
 	// Test empty slice
@@ -929,12 +897,7 @@ func TestSlice(t *testing.T) {
 		}
 
 		err := schema.Apply(data)
-		if err != nil {
-			t.Errorf("Expected no error for empty slice, got: %v", err)
-		}
-
-		if len(people) != 0 {
-			t.Errorf("Expected empty slice, got %d elements", len(people))
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(people))
 	})
 }

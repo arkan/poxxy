@@ -103,9 +103,7 @@ func TestSchema_ApplyHTTPRequest(t *testing.T) {
 
 			if tt.wantErr {
 				assert.Error(t, err)
-				if err != nil {
-					assert.Contains(t, err.Error(), tt.expectedErr)
-				}
+				assert.Contains(t, err.Error(), tt.expectedErr)
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedName, name)
@@ -167,9 +165,7 @@ func TestSchema_ApplyJSON(t *testing.T) {
 
 			if tt.wantErr {
 				assert.Error(t, err)
-				if err != nil {
-					assert.Contains(t, err.Error(), tt.expectedErr)
-				}
+				assert.Contains(t, err.Error(), tt.expectedErr)
 			} else {
 				assert.NoError(t, err)
 			}

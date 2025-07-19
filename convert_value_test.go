@@ -2,6 +2,8 @@ package poxxy
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConvertValue(t *testing.T) {
@@ -209,48 +211,33 @@ func TestConvertValue(t *testing.T) {
 			switch expected := tt.expected.(type) {
 			case string:
 				result, err := convertValue[string](tt.input)
-				if (err != nil) != tt.wantErr {
-					t.Errorf("convertValue() error = %v, wantErr %v", err, tt.wantErr)
-					return
-				}
-				if !tt.wantErr && result != expected {
-					t.Errorf("convertValue() = %v, want %v", result, expected)
+				assert.Equal(t, tt.wantErr, err != nil, "convertValue() error = %v, wantErr %v", err, tt.wantErr)
+				if !tt.wantErr {
+					assert.Equal(t, expected, result, "convertValue() = %v, want %v", result, expected)
 				}
 			case int:
 				result, err := convertValue[int](tt.input)
-				if (err != nil) != tt.wantErr {
-					t.Errorf("convertValue() error = %v, wantErr %v", err, tt.wantErr)
-					return
-				}
-				if !tt.wantErr && result != expected {
-					t.Errorf("convertValue() = %v, want %v", result, expected)
+				assert.Equal(t, tt.wantErr, err != nil, "convertValue() error = %v, wantErr %v", err, tt.wantErr)
+				if !tt.wantErr {
+					assert.Equal(t, expected, result, "convertValue() = %v, want %v", result, expected)
 				}
 			case int64:
 				result, err := convertValue[int64](tt.input)
-				if (err != nil) != tt.wantErr {
-					t.Errorf("convertValue() error = %v, wantErr %v", err, tt.wantErr)
-					return
-				}
-				if !tt.wantErr && result != expected {
-					t.Errorf("convertValue() = %v, want %v", result, expected)
+				assert.Equal(t, tt.wantErr, err != nil, "convertValue() error = %v, wantErr %v", err, tt.wantErr)
+				if !tt.wantErr {
+					assert.Equal(t, expected, result, "convertValue() = %v, want %v", result, expected)
 				}
 			case float64:
 				result, err := convertValue[float64](tt.input)
-				if (err != nil) != tt.wantErr {
-					t.Errorf("convertValue() error = %v, wantErr %v", err, tt.wantErr)
-					return
-				}
-				if !tt.wantErr && result != expected {
-					t.Errorf("convertValue() = %v, want %v", result, expected)
+				assert.Equal(t, tt.wantErr, err != nil, "convertValue() error = %v, wantErr %v", err, tt.wantErr)
+				if !tt.wantErr {
+					assert.Equal(t, expected, result, "convertValue() = %v, want %v", result, expected)
 				}
 			case bool:
 				result, err := convertValue[bool](tt.input)
-				if (err != nil) != tt.wantErr {
-					t.Errorf("convertValue() error = %v, wantErr %v", err, tt.wantErr)
-					return
-				}
-				if !tt.wantErr && result != expected {
-					t.Errorf("convertValue() = %v, want %v", result, expected)
+				assert.Equal(t, tt.wantErr, err != nil, "convertValue() error = %v, wantErr %v", err, tt.wantErr)
+				if !tt.wantErr {
+					assert.Equal(t, expected, result, "convertValue() = %v, want %v", result, expected)
 				}
 			}
 		})
@@ -262,36 +249,32 @@ func TestWasAssignedMechanism_AllFieldTypes(t *testing.T) {
 		var v string
 		schema := NewSchema(Value("foo", &v, WithValidators(Required())))
 		err := schema.Apply(map[string]interface{}{"foo": nil})
-		if err == nil || err.Error() != "foo: field is required" {
-			t.Errorf("expected required error, got %v", err)
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "foo: field is required", err.Error())
 	})
 
 	t.Run("SliceField nil triggers required", func(t *testing.T) {
 		var v []string
 		schema := NewSchema(Slice("foo", &v, WithValidators(Required())))
 		err := schema.Apply(map[string]interface{}{"foo": nil})
-		if err == nil || err.Error() != "foo: field is required" {
-			t.Errorf("expected required error, got %v", err)
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "foo: field is required", err.Error())
 	})
 
 	t.Run("ArrayField nil triggers required", func(t *testing.T) {
 		var v [2]string
 		schema := NewSchema(Array[string]("foo", &v, WithValidators(Required())))
 		err := schema.Apply(map[string]interface{}{"foo": nil})
-		if err == nil || err.Error() != "foo: field is required" {
-			t.Errorf("expected required error, got %v", err)
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "foo: field is required", err.Error())
 	})
 
 	t.Run("PointerField nil triggers required", func(t *testing.T) {
 		var v *string
 		schema := NewSchema(Pointer("foo", &v, WithValidators(Required())))
 		err := schema.Apply(map[string]interface{}{"foo": nil})
-		if err == nil || err.Error() != "foo: field is required" {
-			t.Errorf("expected required error, got %v", err)
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "foo: field is required", err.Error())
 	})
 
 	t.Run("StructField nil triggers required", func(t *testing.T) {
@@ -299,44 +282,31 @@ func TestWasAssignedMechanism_AllFieldTypes(t *testing.T) {
 		var v S
 		schema := NewSchema(Struct("foo", &v, WithValidators(Required()), WithSubSchema(func(s *Schema, v *S) {})))
 		err := schema.Apply(map[string]interface{}{"foo": nil})
-		if err == nil || err.Error() != "foo: field is required" {
-			t.Errorf("expected required error, got %v", err)
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "foo: field is required", err.Error())
 	})
 
 	t.Run("MapField nil triggers required", func(t *testing.T) {
 		var v map[string]string
 		schema := NewSchema(Map("foo", &v, WithValidators(Required())))
 		err := schema.Apply(map[string]interface{}{"foo": nil})
-		if err == nil || err.Error() != "foo: field is required" {
-			t.Errorf("expected required error, got %v", err)
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "foo: field is required", err.Error())
 	})
-
-	// t.Run("TransformField nil triggers required", func(t *testing.T) {
-	// 	var v int
-	// 	schema := NewSchema(Transform[string, int]("foo", &v, func(s string) (int, error) { return 0, nil }, WithValidators(Required())))
-	// 	err := schema.Apply(map[string]interface{}{"foo": nil})
-	// 	if err == nil || err.Error() != "foo: field is required" {
-	// 		t.Errorf("expected required error, got %v", err)
-	// 	}
-	// })
 
 	t.Run("ValueWithoutAssignField nil triggers required", func(t *testing.T) {
 		field := ValueWithoutAssign[string]("foo", WithValidators(Required()))
 		schema := NewSchema(field)
 		err := schema.Apply(map[string]interface{}{"foo": nil})
-		if err == nil || err.Error() != "foo: field is required" {
-			t.Errorf("expected required error, got %v", err)
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "foo: field is required", err.Error())
 	})
 
 	t.Run("NestedMapField nil triggers required", func(t *testing.T) {
 		var v map[string]string
 		schema := NewSchema(NestedMap("foo", &v, WithValidators(Required()), WithSubSchemaMap(func(s *Schema, k string, v string) {})))
 		err := schema.Apply(map[string]interface{}{"foo": nil})
-		if err == nil || err.Error() != "foo: field is required" {
-			t.Errorf("expected required error, got %v", err)
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "foo: field is required", err.Error())
 	})
 }

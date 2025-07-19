@@ -3,8 +3,9 @@ package poxxy
 import (
 	"net/http"
 	"net/url"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseFormCollection(t *testing.T) {
@@ -70,9 +71,7 @@ func TestParseFormCollection(t *testing.T) {
 				PostForm: tt.formData,
 			}
 			got := parseFormCollection(r.PostForm, tt.typeName)
-			if !reflect.DeepEqual(tt.want, got) {
-				t.Errorf("ParseFormCollection() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -130,9 +129,7 @@ func TestConvertToURLValues(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := convertToURLValues(tt.data)
-			if !reflect.DeepEqual(tt.want, got) {
-				t.Errorf("convertToURLValues() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -166,9 +163,7 @@ func TestHTTPMap_SetDefaultValue(t *testing.T) {
 			t.Errorf("Schema.Apply() error = %v", err)
 		}
 
-		if !reflect.DeepEqual(attachments, defaultAttachments) {
-			t.Errorf("attachments = %v, want %v", attachments, defaultAttachments)
-		}
+		assert.Equal(t, defaultAttachments, attachments)
 	})
 
 	t.Run("provided form data overrides default value", func(t *testing.T) {
@@ -193,9 +188,7 @@ func TestHTTPMap_SetDefaultValue(t *testing.T) {
 			"attachments[0][filename]": "doc1.pdf",
 		}
 		err := schema.Apply(data)
-		if err != nil {
-			t.Errorf("Schema.Apply() error = %v", err)
-		}
+		assert.NoError(t, err)
 
 		expected := map[string]Attachment{
 			"0": {
@@ -204,9 +197,7 @@ func TestHTTPMap_SetDefaultValue(t *testing.T) {
 			},
 		}
 
-		if !reflect.DeepEqual(attachments, expected) {
-			t.Errorf("attachments = %v, want %v", attachments, expected)
-		}
+		assert.Equal(t, expected, attachments)
 	})
 
 	t.Run("no default value when field is not present", func(t *testing.T) {
@@ -222,13 +213,8 @@ func TestHTTPMap_SetDefaultValue(t *testing.T) {
 		// Apply empty data - should not set any value
 		data := map[string]interface{}{}
 		err := schema.Apply(data)
-		if err != nil {
-			t.Errorf("Schema.Apply() error = %v", err)
-		}
-
-		if attachments != nil {
-			t.Errorf("attachments = %v, want nil", attachments)
-		}
+		assert.NoError(t, err)
+		assert.Nil(t, attachments)
 	})
 
 	t.Run("default value with complex struct", func(t *testing.T) {
@@ -255,13 +241,8 @@ func TestHTTPMap_SetDefaultValue(t *testing.T) {
 		// Apply empty data - should use default value
 		data := map[string]interface{}{}
 		err := schema.Apply(data)
-		if err != nil {
-			t.Errorf("Schema.Apply() error = %v", err)
-		}
-
-		if !reflect.DeepEqual(users, defaultUsers) {
-			t.Errorf("users = %v, want %v", users, defaultUsers)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, defaultUsers, users)
 	})
 
 	t.Run("default value with string keys", func(t *testing.T) {
@@ -286,13 +267,8 @@ func TestHTTPMap_SetDefaultValue(t *testing.T) {
 		// Apply empty data - should use default value
 		data := map[string]interface{}{}
 		err := schema.Apply(data)
-		if err != nil {
-			t.Errorf("Schema.Apply() error = %v", err)
-		}
-
-		if !reflect.DeepEqual(configs, defaultConfigs) {
-			t.Errorf("configs = %v, want %v", configs, defaultConfigs)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, defaultConfigs, configs)
 	})
 
 	t.Run("empty default map", func(t *testing.T) {
@@ -309,12 +285,7 @@ func TestHTTPMap_SetDefaultValue(t *testing.T) {
 		// Apply empty data - should use empty default
 		data := map[string]interface{}{}
 		err := schema.Apply(data)
-		if err != nil {
-			t.Errorf("Schema.Apply() error = %v", err)
-		}
-
-		if !reflect.DeepEqual(attachments, defaultAttachments) {
-			t.Errorf("attachments = %v, want %v", attachments, defaultAttachments)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, defaultAttachments, attachments)
 	})
 }
