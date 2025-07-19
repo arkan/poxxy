@@ -17,27 +17,33 @@ type PointerField[T any] struct {
 	transformers []Transformer[T]
 }
 
+// Name returns the field name
 func (f *PointerField[T]) Name() string {
 	return f.name
 }
 
+// Description returns the field description
 func (f *PointerField[T]) Description() string {
 	return f.description
 }
 
+// SetDescription sets the field description
 func (f *PointerField[T]) SetDescription(description string) {
 	f.description = description
 }
 
+// AddTransformer adds a transformer to the field
 func (f *PointerField[T]) AddTransformer(transformer Transformer[T]) {
 	f.transformers = append(f.transformers, transformer)
 }
 
+// SetDefaultValue sets the default value for the field
 func (f *PointerField[T]) SetDefaultValue(defaultValue T) {
 	f.defaultValue = defaultValue
 	f.hasDefault = true
 }
 
+// Value returns the current value of the field
 func (f *PointerField[T]) Value() interface{} {
 	if f.ptr == nil {
 		return nil
@@ -48,6 +54,7 @@ func (f *PointerField[T]) Value() interface{} {
 	return *f.ptr
 }
 
+// Assign assigns a value to the field from the input data
 func (f *PointerField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
@@ -111,6 +118,7 @@ func (f *PointerField[T]) Assign(data map[string]interface{}, schema *Schema) er
 	return nil
 }
 
+// Validate validates the field value using all registered validators
 func (f *PointerField[T]) Validate(schema *Schema) error {
 	if f.ptr == nil || *f.ptr == nil {
 		return validateFieldValidators(f.Validators, nil, f.name, schema)
@@ -123,6 +131,7 @@ func (f *PointerField[T]) AppendValidators(validators []Validator) {
 	f.Validators = append(f.Validators, validators...)
 }
 
+// SetCallback sets the callback function for configuring sub-schemas
 func (f *PointerField[T]) SetCallback(callback func(*Schema, *T)) {
 	f.callback = callback
 }

@@ -18,10 +18,12 @@ type SliceField[T any] struct {
 	transformers []Transformer[[]T]
 }
 
+// Name returns the field name
 func (f *SliceField[T]) Name() string {
 	return f.name
 }
 
+// Value returns the current value of the field
 func (f *SliceField[T]) Value() interface{} {
 	if f.ptr == nil {
 		return nil
@@ -32,23 +34,28 @@ func (f *SliceField[T]) Value() interface{} {
 	return *f.ptr
 }
 
+// Description returns the field description
 func (f *SliceField[T]) Description() string {
 	return f.description
 }
 
+// SetDescription sets the field description
 func (f *SliceField[T]) SetDescription(description string) {
 	f.description = description
 }
 
+// AddTransformer adds a transformer to the field
 func (f *SliceField[T]) AddTransformer(transformer Transformer[[]T]) {
 	f.transformers = append(f.transformers, transformer)
 }
 
+// SetDefaultValue sets the default value for the field
 func (f *SliceField[T]) SetDefaultValue(defaultValue []T) {
 	f.defaultValue = defaultValue
 	f.hasDefault = true
 }
 
+// Assign assigns a value to the field from the input data
 func (f *SliceField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
@@ -129,6 +136,7 @@ func (f *SliceField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 	return nil
 }
 
+// Validate validates the field value using all registered validators
 func (f *SliceField[T]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
@@ -138,6 +146,7 @@ func (f *SliceField[T]) AppendValidators(validators []Validator) {
 	f.Validators = append(f.Validators, validators...)
 }
 
+// SetCallback sets the callback function for configuring sub-schemas
 func (f *SliceField[T]) SetCallback(callback func(*Schema, *T)) {
 	f.callback = callback
 }

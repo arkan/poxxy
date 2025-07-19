@@ -13,18 +13,22 @@ type ValueWithoutAssignField[T any] struct {
 	wasAssigned bool // Track if a non-nil value was assigned
 }
 
+// Name returns the field name
 func (f *ValueWithoutAssignField[T]) Name() string {
 	return f.name
 }
 
+// Description returns the field description
 func (f *ValueWithoutAssignField[T]) Description() string {
 	return f.description
 }
 
+// SetDescription sets the field description
 func (f *ValueWithoutAssignField[T]) SetDescription(description string) {
 	f.description = description
 }
 
+// Value returns the current value of the field
 func (f *ValueWithoutAssignField[T]) Value() interface{} {
 	if f.value == nil {
 		return nil
@@ -35,6 +39,7 @@ func (f *ValueWithoutAssignField[T]) Value() interface{} {
 	return f.value
 }
 
+// Assign assigns a value to the field from the input data
 func (f *ValueWithoutAssignField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
@@ -58,6 +63,7 @@ func (f *ValueWithoutAssignField[T]) Assign(data map[string]interface{}, schema 
 	return nil
 }
 
+// Validate validates the field value using all registered validators
 func (f *ValueWithoutAssignField[T]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, f.value, f.name, schema)
 }

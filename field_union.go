@@ -14,18 +14,22 @@ type UnionField struct {
 	wasAssigned bool // Track if a non-nil value was assigned
 }
 
+// Name returns the field name
 func (f *UnionField) Name() string {
 	return f.name
 }
 
+// Description returns the field description
 func (f *UnionField) Description() string {
 	return f.description
 }
 
+// SetDescription sets the field description
 func (f *UnionField) SetDescription(description string) {
 	f.description = description
 }
 
+// Value returns the current value of the field
 func (f *UnionField) Value() interface{} {
 	if f.ptr == nil {
 		return nil
@@ -36,6 +40,7 @@ func (f *UnionField) Value() interface{} {
 	return f.ptr
 }
 
+// Assign assigns a value to the field from the input data
 func (f *UnionField) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
@@ -71,6 +76,7 @@ func (f *UnionField) Assign(data map[string]interface{}, schema *Schema) error {
 	return nil
 }
 
+// Validate validates the field value using all registered validators
 func (f *UnionField) Validate(schema *Schema) error {
 	// Validation happens during assignment
 	return nil

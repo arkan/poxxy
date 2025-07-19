@@ -17,27 +17,33 @@ type ConvertField[From, To any] struct {
 	transformers []Transformer[To]
 }
 
+// Name returns the field name
 func (f *ConvertField[From, To]) Name() string {
 	return f.name
 }
 
+// Description returns the field description
 func (f *ConvertField[From, To]) Description() string {
 	return f.description
 }
 
+// SetDescription sets the field description
 func (f *ConvertField[From, To]) SetDescription(description string) {
 	f.description = description
 }
 
+// AddTransformer adds a transformer to the field
 func (f *ConvertField[From, To]) AddTransformer(transformer Transformer[To]) {
 	f.transformers = append(f.transformers, transformer)
 }
 
+// SetDefaultValue sets the default value for the field
 func (f *ConvertField[From, To]) SetDefaultValue(defaultValue To) {
 	f.defaultValue = defaultValue
 	f.hasDefault = true
 }
 
+// Value returns the current value of the field
 func (f *ConvertField[From, To]) Value() interface{} {
 	if f.ptr == nil {
 		return nil
@@ -48,6 +54,7 @@ func (f *ConvertField[From, To]) Value() interface{} {
 	return *f.ptr
 }
 
+// Assign assigns a value to the field from the input data
 func (f *ConvertField[From, To]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
@@ -93,6 +100,7 @@ func (f *ConvertField[From, To]) Assign(data map[string]interface{}, schema *Sch
 	return nil
 }
 
+// Validate validates the field value using all registered validators
 func (f *ConvertField[From, To]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
@@ -145,27 +153,33 @@ type ConvertPointerField[From, To any] struct {
 	transformers []Transformer[To]
 }
 
+// Name returns the field name
 func (f *ConvertPointerField[From, To]) Name() string {
 	return f.name
 }
 
+// Description returns the field description
 func (f *ConvertPointerField[From, To]) Description() string {
 	return f.description
 }
 
+// SetDescription sets the field description
 func (f *ConvertPointerField[From, To]) SetDescription(description string) {
 	f.description = description
 }
 
+// AddTransformer adds a transformer to the field
 func (f *ConvertPointerField[From, To]) AddTransformer(transformer Transformer[To]) {
 	f.transformers = append(f.transformers, transformer)
 }
 
+// SetDefaultValue sets the default value for the field
 func (f *ConvertPointerField[From, To]) SetDefaultValue(defaultValue To) {
 	f.defaultValue = defaultValue
 	f.hasDefault = true
 }
 
+// Value returns the current value of the field
 func (f *ConvertPointerField[From, To]) Value() interface{} {
 	if f.ptr == nil {
 		return nil
@@ -176,6 +190,7 @@ func (f *ConvertPointerField[From, To]) Value() interface{} {
 	return *f.ptr
 }
 
+// Assign assigns a value to the field from the input data
 func (f *ConvertPointerField[From, To]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
@@ -221,6 +236,7 @@ func (f *ConvertPointerField[From, To]) Assign(data map[string]interface{}, sche
 	return nil
 }
 
+// Validate validates the field value using all registered validators
 func (f *ConvertPointerField[From, To]) Validate(schema *Schema) error {
 	if f.ptr == nil || *f.ptr == nil {
 		return validateFieldValidators(f.Validators, nil, f.name, schema)

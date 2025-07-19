@@ -14,10 +14,12 @@ type ValueField[T any] struct {
 	transformers []Transformer[T]
 }
 
+// Name returns the field name
 func (f *ValueField[T]) Name() string {
 	return f.name
 }
 
+// Value returns the current value of the field
 func (f *ValueField[T]) Value() interface{} {
 	if f.ptr == nil {
 		return nil
@@ -28,23 +30,28 @@ func (f *ValueField[T]) Value() interface{} {
 	return *f.ptr
 }
 
+// Description returns the field description
 func (f *ValueField[T]) Description() string {
 	return f.description
 }
 
+// SetDescription sets the field description
 func (f *ValueField[T]) SetDescription(description string) {
 	f.description = description
 }
 
+// AddTransformer adds a transformer to the field
 func (f *ValueField[T]) AddTransformer(transformer Transformer[T]) {
 	f.transformers = append(f.transformers, transformer)
 }
 
+// SetDefaultValue sets the default value for the field
 func (f *ValueField[T]) SetDefaultValue(defaultValue T) {
 	f.defaultValue = defaultValue
 	f.hasDefault = true
 }
 
+// Assign assigns a value to the field from the input data
 func (f *ValueField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
@@ -92,6 +99,7 @@ func (f *ValueField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 	return nil
 }
 
+// Validate validates the field value using all registered validators
 func (f *ValueField[T]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }

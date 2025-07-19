@@ -10,6 +10,7 @@ import (
 
 // Transformer represents a function that transforms a value before assignment and validation
 type Transformer[T any] interface {
+	// Transform applies the transformation to the given value
 	Transform(value T) (T, error)
 }
 
@@ -18,6 +19,7 @@ type TransformerFn[T any] struct {
 	fn func(T) (T, error)
 }
 
+// Transform applies the transformation function to the value
 func (t TransformerFn[T]) Transform(value T) (T, error) {
 	return t.fn(value)
 }
@@ -27,6 +29,7 @@ type TransformerOption[T any] struct {
 	transformers []Transformer[T]
 }
 
+// Apply applies the transformers to the field
 func (o TransformerOption[T]) Apply(field interface{}) {
 	// Try to use type assertion first
 	if valueField, ok := field.(*ValueField[T]); ok {
@@ -119,7 +122,7 @@ func SanitizeEmail() Transformer[string] {
 	}
 }
 
-// Custom transformer creator
+// CustomTransformer creates a custom transformer from a function
 func CustomTransformer[T any](transform func(T) (T, error)) Transformer[T] {
 	return TransformerFn[T]{fn: transform}
 }

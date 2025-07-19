@@ -7,7 +7,9 @@ import (
 
 // Validator represents a validation function
 type Validator interface {
+	// Validate validates a value and returns an error if validation fails
 	Validate(value interface{}, fieldName string) error
+	// WithMessage sets a custom error message for the validator
 	WithMessage(msg string) Validator
 }
 
@@ -17,6 +19,7 @@ type ValidatorFn struct {
 	msg string
 }
 
+// Validate validates a value using the validator function
 func (v ValidatorFn) Validate(value interface{}, fieldName string) error {
 	err := v.fn(value, fieldName)
 	if err != nil && v.msg != "" {
@@ -25,6 +28,7 @@ func (v ValidatorFn) Validate(value interface{}, fieldName string) error {
 	return err
 }
 
+// WithMessage sets a custom error message for the validator
 func (v ValidatorFn) WithMessage(msg string) Validator {
 	return ValidatorFn{fn: v.fn, msg: msg}
 }
@@ -61,6 +65,7 @@ type ValidatorsOption struct {
 	validators []Validator
 }
 
+// Apply applies the validators to the field
 func (o ValidatorsOption) Apply(field interface{}) {
 	// Try to use the interface first
 	if appender, ok := field.(ValidatorsAppender); ok {
@@ -100,6 +105,7 @@ type DefaultOption[T any] struct {
 	defaultValue T
 }
 
+// Apply applies the default value to the field
 func (o DefaultOption[T]) Apply(field interface{}) {
 	// Try to use interface first
 	if setter, ok := field.(DefaultValueSetter[T]); ok {

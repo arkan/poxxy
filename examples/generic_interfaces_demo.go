@@ -6,14 +6,14 @@ import (
 	"github.com/arkan/poxxy"
 )
 
-// Cet exemple démontre l'amélioration apportée par les interfaces génériques
-// Avant : type switching fragile dans validators.go (lignes 60-90)
-// Après : interfaces génériques robustes avec ValidatorsAppender et DefaultValueSetter
+// This example demonstrates the improvement brought by generic interfaces
+// Before: fragile type switching in validators.go (lines 60-90)
+// After: robust generic interfaces with ValidatorsAppender and DefaultValueSetter
 
 func main() {
-	fmt.Println("=== Démonstration des interfaces génériques améliorées ===")
+	fmt.Println("=== Demonstration of Improved Generic Interfaces ===")
 
-	// 1. Différents types de champs avec validators - tous utilisent la même interface
+	// 1. Different field types with validators - all use the same interface
 	var name string
 	var age int
 	var scores []float64
@@ -24,7 +24,7 @@ func main() {
 		poxxy.Value("name", &name,
 			poxxy.WithValidators(poxxy.Required(), poxxy.MinLength(2))),
 
-		// ValueField avec type différent
+		// ValueField with different type
 		poxxy.Value("age", &age,
 			poxxy.WithValidators(poxxy.Required(), poxxy.Min(18), poxxy.Max(120))),
 
@@ -52,13 +52,13 @@ func main() {
 		return
 	}
 
-	fmt.Printf("✅ Tous les champs validés avec succès!\n")
+	fmt.Printf("✅ All fields validated successfully!\n")
 	fmt.Printf("Name: %s\n", name)
 	fmt.Printf("Age: %d\n", age)
 	fmt.Printf("Scores: %v\n", scores)
 	fmt.Printf("Settings: %v\n\n", settings)
 
-	// 2. Démonstration des valeurs par défaut avec interface générique
+	// 2. Demonstration of default values with generic interface
 	var title string
 	var count int
 	var active bool
@@ -69,7 +69,7 @@ func main() {
 		poxxy.Value("active", &active, poxxy.WithDefault(true)),
 	)
 
-	// Données vides - les valeurs par défaut seront utilisées
+	// Empty data - default values will be used
 	emptyData := map[string]interface{}{}
 
 	if err := defaultSchema.Apply(emptyData); err != nil {
@@ -77,21 +77,21 @@ func main() {
 		return
 	}
 
-	fmt.Printf("✅ Valeurs par défaut appliquées automatiquement!\n")
+	fmt.Printf("✅ Default values applied automatically!\n")
 	fmt.Printf("Title: %s\n", title)
 	fmt.Printf("Count: %d\n", count)
 	fmt.Printf("Active: %t\n\n", active)
 
-	// 3. Démonstration de l'extensibilité
-	fmt.Println("Pour ajouter un nouveau type de champ, il suffit d'implémenter:")
-	fmt.Println("- ValidatorsAppender pour les validators")
-	fmt.Println("- DefaultValueSetter[T] pour les valeurs par défaut")
-	fmt.Println("- L'interface Field pour l'intégration complète")
+	// 3. Demonstration of extensibility
+	fmt.Println("To add a new field type, simply implement:")
+	fmt.Println("- ValidatorsAppender for validators")
+	fmt.Println("- DefaultValueSetter[T] for default values")
+	fmt.Println("- The Field interface for complete integration")
 
-	fmt.Println("=== Avantages de la nouvelle approche ===")
-	fmt.Println("✅ Plus de type switching fragile")
-	fmt.Println("✅ Extensibilité facile - il suffit d'implémenter les interfaces")
-	fmt.Println("✅ Maintenance réduite - pas besoin d'ajouter de nouveaux cas")
-	fmt.Println("✅ Type safety amélioré avec les génériques")
-	fmt.Println("✅ Code plus lisible et maintenable")
+	fmt.Println("=== Advantages of the New Approach ===")
+	fmt.Println("✅ No more fragile type switching")
+	fmt.Println("✅ Easy extensibility - just implement the interfaces")
+	fmt.Println("✅ Reduced maintenance - no need to add new cases")
+	fmt.Println("✅ Improved type safety with generics")
+	fmt.Println("✅ More readable and maintainable code")
 }

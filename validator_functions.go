@@ -13,12 +13,14 @@ type RequiredValidator struct {
 	msg string
 }
 
+// Validate validates that the field is present and not empty
 func (v RequiredValidator) Validate(value interface{}, fieldName string) error {
 	// This will be called during the validation phase, but we need schema context
 	// The actual logic will be handled in the field's Validate method
 	return nil
 }
 
+// WithMessage sets a custom error message for the validator
 func (v RequiredValidator) WithMessage(msg string) Validator {
 	return RequiredValidator{msg: msg}
 }
@@ -91,7 +93,7 @@ func NotEmpty() Validator {
 	}
 }
 
-// Email validator
+// Email validator validates email format
 func Email() Validator {
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	return ValidatorFn{
@@ -117,7 +119,7 @@ func Email() Validator {
 	}
 }
 
-// Min validator
+// Min validator validates that a numeric value is at least the specified minimum
 func Min(min interface{}) Validator {
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
@@ -159,7 +161,7 @@ func Min(min interface{}) Validator {
 	}
 }
 
-// Max validator
+// Max validator validates that a numeric value is at most the specified maximum
 func Max(max interface{}) Validator {
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
@@ -201,7 +203,7 @@ func Max(max interface{}) Validator {
 	}
 }
 
-// MinLength validator
+// MinLength validator validates that a string or slice has at least the specified length
 func MinLength(minLen int) Validator {
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
@@ -229,7 +231,7 @@ func MinLength(minLen int) Validator {
 	}
 }
 
-// MaxLength validator
+// MaxLength validator validates that a string or slice has at most the specified length
 func MaxLength(maxLen int) Validator {
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
@@ -257,7 +259,7 @@ func MaxLength(maxLen int) Validator {
 	}
 }
 
-// URL validator
+// URL validator validates URL format
 func URL() Validator {
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
@@ -292,6 +294,7 @@ func URL() Validator {
 	}
 }
 
+// ValidatorFunc creates a custom validator from a function
 func ValidatorFunc[T any](fn func(value T, fieldName string) error) Validator {
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
@@ -300,7 +303,7 @@ func ValidatorFunc[T any](fn func(value T, fieldName string) error) Validator {
 	}
 }
 
-// In validator
+// In validator validates that a value is one of the specified values
 func In(values ...interface{}) Validator {
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {
@@ -409,6 +412,7 @@ func UniqueBy(keyExtractor func(interface{}) interface{}) Validator {
 	}
 }
 
+// WithMapKeys validator ensures that a map contains all the specified keys
 func WithMapKeys(keys ...string) Validator {
 	return ValidatorFn{
 		fn: func(value interface{}, fieldName string) error {

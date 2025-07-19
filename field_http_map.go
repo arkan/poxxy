@@ -18,10 +18,12 @@ type HTTPMapField[K comparable, V any] struct {
 	hasDefault   bool
 }
 
+// Name returns the field name
 func (f *HTTPMapField[K, V]) Name() string {
 	return f.name
 }
 
+// Value returns the current value of the field
 func (f *HTTPMapField[K, V]) Value() interface{} {
 	if f.ptr == nil {
 		return nil
@@ -32,14 +34,17 @@ func (f *HTTPMapField[K, V]) Value() interface{} {
 	return *f.ptr
 }
 
+// Description returns the field description
 func (f *HTTPMapField[K, V]) Description() string {
 	return f.description
 }
 
+// SetDescription sets the field description
 func (f *HTTPMapField[K, V]) SetDescription(description string) {
 	f.description = description
 }
 
+// Assign assigns a value to the field from the input data
 func (f *HTTPMapField[K, V]) Assign(data map[string]interface{}, schema *Schema) error {
 	result := make(map[K]V)
 
@@ -79,6 +84,7 @@ func (f *HTTPMapField[K, V]) Assign(data map[string]interface{}, schema *Schema)
 	return nil
 }
 
+// Validate validates the field value using all registered validators
 func (f *HTTPMapField[K, V]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
@@ -88,18 +94,22 @@ func (f *HTTPMapField[K, V]) AppendValidators(validators []Validator) {
 	f.Validators = append(f.Validators, validators...)
 }
 
-// SetDefaultValue sets the default value for the HTTPMap field
+// SetCallback sets the callback function for configuring sub-schemas
+func (f *HTTPMapField[K, V]) SetCallback(callback func(*Schema, *V)) {
+	f.callback = callback
+}
+
+// SetDefaultValue sets the default value for the field
 func (f *HTTPMapField[K, V]) SetDefaultValue(defaultValue map[K]V) {
 	f.defaultValue = defaultValue
 	f.hasDefault = true
 }
 
-// HTTPMap creates a map field for structs with element-wise schema definition
-func HTTPMap[K comparable, V any](name string, ptr *map[K]V, schemaCallback func(*Schema, *V), opts ...Option) Field {
+// HTTPMap creates an HTTP map field
+func HTTPMap[K comparable, V any](name string, ptr *map[K]V, opts ...Option) Field {
 	field := &HTTPMapField[K, V]{
-		name:     name,
-		ptr:      ptr,
-		callback: schemaCallback,
+		name: name,
+		ptr:  ptr,
 	}
 
 	for _, opt := range opts {
@@ -109,6 +119,7 @@ func HTTPMap[K comparable, V any](name string, ptr *map[K]V, schemaCallback func
 	return field
 }
 
+// convertToURLValues converts a map[string]interface{} to url.Values
 func convertToURLValues(data map[string]interface{}) url.Values {
 	values := url.Values{}
 	for key, value := range data {
@@ -128,6 +139,7 @@ func convertToURLValues(data map[string]interface{}) url.Values {
 	return values
 }
 
+// parseFormCollection parses form data to extract nested map structures
 func parseFormCollection(values url.Values, typeName string) map[string]map[string]string {
 	result := make(map[string]map[string]string)
 
@@ -150,6 +162,7 @@ func parseFormCollection(values url.Values, typeName string) map[string]map[stri
 	return result
 }
 
+// convertMapStringStringToMapStringInterface converts map[string]string to map[string]interface{}
 func convertMapStringStringToMapStringInterface(data map[string]string) map[string]interface{} {
 	result := make(map[string]interface{})
 	for key, value := range data {

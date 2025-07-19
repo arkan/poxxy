@@ -16,10 +16,12 @@ type NestedMapField[K comparable, V any] struct {
 	hasDefault   bool
 }
 
+// Name returns the field name
 func (f *NestedMapField[K, V]) Name() string {
 	return f.name
 }
 
+// Value returns the current value of the field
 func (f *NestedMapField[K, V]) Value() interface{} {
 	if f.ptr == nil {
 		return nil
@@ -30,19 +32,23 @@ func (f *NestedMapField[K, V]) Value() interface{} {
 	return *f.ptr
 }
 
+// Description returns the field description
 func (f *NestedMapField[K, V]) Description() string {
 	return f.description
 }
 
+// SetDescription sets the field description
 func (f *NestedMapField[K, V]) SetDescription(description string) {
 	f.description = description
 }
 
+// SetDefaultValue sets the default value for the field
 func (f *NestedMapField[K, V]) SetDefaultValue(defaultValue map[K]V) {
 	f.defaultValue = defaultValue
 	f.hasDefault = true
 }
 
+// Assign assigns a value to the field from the input data
 func (f *NestedMapField[K, V]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
@@ -97,6 +103,7 @@ func (f *NestedMapField[K, V]) Assign(data map[string]interface{}, schema *Schem
 	return nil
 }
 
+// Validate validates the field value using all registered validators
 func (f *NestedMapField[K, V]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }

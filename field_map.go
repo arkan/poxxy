@@ -16,10 +16,12 @@ type MapField[K comparable, V any] struct {
 	hasDefault   bool
 }
 
+// Name returns the field name
 func (f *MapField[K, V]) Name() string {
 	return f.name
 }
 
+// Value returns the current value of the field
 func (f *MapField[K, V]) Value() interface{} {
 	if f.ptr == nil {
 		return nil
@@ -30,14 +32,17 @@ func (f *MapField[K, V]) Value() interface{} {
 	return *f.ptr
 }
 
+// Description returns the field description
 func (f *MapField[K, V]) Description() string {
 	return f.description
 }
 
+// SetDescription sets the field description
 func (f *MapField[K, V]) SetDescription(description string) {
 	f.description = description
 }
 
+// Assign assigns a value to the field from the input data
 func (f *MapField[K, V]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
@@ -95,6 +100,7 @@ func (f *MapField[K, V]) Assign(data map[string]interface{}, schema *Schema) err
 	return nil
 }
 
+// Validate validates the field value using all registered validators
 func (f *MapField[K, V]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
@@ -104,10 +110,12 @@ func (f *MapField[K, V]) AppendValidators(validators []Validator) {
 	f.Validators = append(f.Validators, validators...)
 }
 
+// SetCallback sets the callback function for configuring sub-schemas
 func (f *MapField[K, V]) SetCallback(callback func(*Schema, K, V)) {
 	f.callback = callback
 }
 
+// SetDefaultValue sets the default value for the field
 func (f *MapField[K, V]) SetDefaultValue(defaultValue map[K]V) {
 	f.defaultValue = defaultValue
 	f.hasDefault = true

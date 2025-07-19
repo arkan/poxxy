@@ -17,10 +17,12 @@ type ArrayField[T any] struct {
 	transformers []Transformer[interface{}]
 }
 
+// Name returns the field name
 func (f *ArrayField[T]) Name() string {
 	return f.name
 }
 
+// Value returns the current value of the field
 func (f *ArrayField[T]) Value() interface{} {
 	if f.ptr == nil {
 		return nil
@@ -31,23 +33,28 @@ func (f *ArrayField[T]) Value() interface{} {
 	return f.ptr
 }
 
+// Description returns the field description
 func (f *ArrayField[T]) Description() string {
 	return f.description
 }
 
+// SetDescription sets the field description
 func (f *ArrayField[T]) SetDescription(description string) {
 	f.description = description
 }
 
+// AddTransformer adds a transformer to the field
 func (f *ArrayField[T]) AddTransformer(transformer Transformer[interface{}]) {
 	f.transformers = append(f.transformers, transformer)
 }
 
+// SetDefaultValue sets the default value for the field
 func (f *ArrayField[T]) SetDefaultValue(defaultValue interface{}) {
 	f.defaultValue = defaultValue
 	f.hasDefault = true
 }
 
+// Assign assigns a value to the field from the input data
 func (f *ArrayField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
@@ -117,11 +124,9 @@ func (f *ArrayField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 	return nil
 }
 
+// Validate validates the field value using all registered validators
 func (f *ArrayField[T]) Validate(schema *Schema) error {
-	arrayValue := reflect.ValueOf(f.ptr).Elem()
-	arrayInterface := arrayValue.Interface()
-
-	return validateFieldValidators(f.Validators, arrayInterface, f.name, schema)
+	return validateFieldValidators(f.Validators, f.ptr, f.name, schema)
 }
 
 // AppendValidators implements ValidatorsAppender interface

@@ -16,10 +16,12 @@ type StructField[T any] struct {
 	hasDefault   bool
 }
 
+// Name returns the field name
 func (f *StructField[T]) Name() string {
 	return f.name
 }
 
+// Value returns the current value of the field
 func (f *StructField[T]) Value() interface{} {
 	if f.ptr == nil {
 		return nil
@@ -30,14 +32,17 @@ func (f *StructField[T]) Value() interface{} {
 	return *f.ptr
 }
 
+// Description returns the field description
 func (f *StructField[T]) Description() string {
 	return f.description
 }
 
+// SetDescription sets the field description
 func (f *StructField[T]) SetDescription(description string) {
 	f.description = description
 }
 
+// Assign assigns a value to the field from the input data
 func (f *StructField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
 	if !exists {
@@ -73,6 +78,7 @@ func (f *StructField[T]) Assign(data map[string]interface{}, schema *Schema) err
 	return subSchema.Apply(structData)
 }
 
+// Validate validates the field value using all registered validators
 func (f *StructField[T]) Validate(schema *Schema) error {
 	return validateFieldValidators(f.Validators, *f.ptr, f.name, schema)
 }
@@ -82,10 +88,12 @@ func (f *StructField[T]) AppendValidators(validators []Validator) {
 	f.Validators = append(f.Validators, validators...)
 }
 
+// SetCallback sets the callback function for configuring sub-schemas
 func (f *StructField[T]) SetCallback(callback func(*Schema, *T)) {
 	f.callback = callback
 }
 
+// SetDefaultValue sets the default value for the field
 func (f *StructField[T]) SetDefaultValue(defaultValue T) {
 	f.defaultValue = defaultValue
 	f.hasDefault = true

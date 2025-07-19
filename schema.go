@@ -27,8 +27,10 @@ func NewSchema(fields ...Field) *Schema {
 	}
 }
 
+// SchemaOption represents a configuration option for a schema
 type SchemaOption func(*Schema)
 
+// WithSkipValidators creates a schema option to skip validation
 func WithSkipValidators(skipValidators bool) SchemaOption {
 	return func(s *Schema) {
 		s.skipValidators = skipValidators
@@ -138,6 +140,7 @@ func (s *Schema) Apply(data map[string]interface{}, options ...SchemaOption) err
 	return nil
 }
 
+// GetFieldValue returns the value of a field by name
 func (s *Schema) GetFieldValue(fieldName string) (interface{}, bool) {
 	for _, field := range s.fields {
 		if f, ok := field.(Field); ok && f.Name() == fieldName {
@@ -153,26 +156,32 @@ func (s *Schema) IsFieldPresent(fieldName string) bool {
 	return exists
 }
 
+// SetFieldPresent marks a field as present in the input data
 func (s *Schema) SetFieldPresent(fieldName string) {
 	s.presentFields[fieldName] = true
 }
 
+// WithSchema adds a field to a schema
 func WithSchema(schema *Schema, field Field) {
 	schema.fields = append(schema.fields, field)
 }
 
+// SubSchemaOption holds a callback for configuring sub-schemas
 type SubSchemaOption[T any] struct {
 	callback func(*Schema, *T)
 }
 
+// SubSchemaInterface is an interface for fields that can set sub-schema callbacks
 type SubSchemaInterface[T any] interface {
 	SetCallback(func(*Schema, *T))
 }
 
+// SubSchemaMapInterface is an interface for map fields that can set sub-schema callbacks
 type SubSchemaMapInterface[K comparable, V any] interface {
 	SetCallback(func(*Schema, K, V))
 }
 
+// Apply applies the sub-schema callback to the field
 func (o SubSchemaOption[T]) Apply(field interface{}) {
 	if f, ok := field.(SubSchemaInterface[T]); ok {
 		f.SetCallback(o.callback)
@@ -181,14 +190,17 @@ func (o SubSchemaOption[T]) Apply(field interface{}) {
 	}
 }
 
+// WithSubSchema creates a sub-schema option
 func WithSubSchema[T any](callback func(*Schema, *T)) Option {
 	return SubSchemaOption[T]{callback: callback}
 }
 
+// SubSchemaMapOption holds a callback for configuring map sub-schemas
 type SubSchemaMapOption[K comparable, V any] struct {
 	callback func(*Schema, K, V)
 }
 
+// Apply applies the map sub-schema callback to the field
 func (o SubSchemaMapOption[K, V]) Apply(field interface{}) {
 	if f, ok := field.(SubSchemaMapInterface[K, V]); ok {
 		f.SetCallback(o.callback)
@@ -197,6 +209,7 @@ func (o SubSchemaMapOption[K, V]) Apply(field interface{}) {
 	}
 }
 
+// WithSubSchemaMap creates a map sub-schema option
 func WithSubSchemaMap[K comparable, V any](callback func(*Schema, K, V)) Option {
 	return SubSchemaMapOption[K, V]{callback: callback}
 }
