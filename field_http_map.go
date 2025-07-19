@@ -8,12 +8,14 @@ import (
 
 // HTTPMapField represents a map field where each value is a struct
 type HTTPMapField[K comparable, V any] struct {
-	name        string
-	description string
-	ptr         *map[K]V
-	callback    func(*Schema, *V)
-	Validators  []Validator
-	wasAssigned bool // Track if a non-nil value was assigned
+	name         string
+	description  string
+	ptr          *map[K]V
+	callback     func(*Schema, *V)
+	Validators   []Validator
+	wasAssigned  bool // Track if a non-nil value was assigned
+	defaultValue map[K]V
+	hasDefault   bool
 }
 
 func (f *HTTPMapField[K, V]) Name() string {
@@ -47,7 +49,15 @@ func (f *HTTPMapField[K, V]) Assign(data map[string]interface{}, schema *Schema)
 		schema.SetFieldPresent(f.name)
 		f.wasAssigned = true
 	} else {
-		f.wasAssigned = false
+		// Apply default value if available and no form data was found
+		if f.hasDefault {
+			*f.ptr = f.defaultValue
+			f.wasAssigned = true
+			schema.SetFieldPresent(f.name)
+		} else {
+			f.wasAssigned = false
+		}
+		return nil
 	}
 
 	for key, value := range formData {
@@ -76,6 +86,12 @@ func (f *HTTPMapField[K, V]) Validate(schema *Schema) error {
 // AppendValidators implements ValidatorsAppender interface
 func (f *HTTPMapField[K, V]) AppendValidators(validators []Validator) {
 	f.Validators = append(f.Validators, validators...)
+}
+
+// SetDefaultValue sets the default value for the HTTPMap field
+func (f *HTTPMapField[K, V]) SetDefaultValue(defaultValue map[K]V) {
+	f.defaultValue = defaultValue
+	f.hasDefault = true
 }
 
 // HTTPMap creates a map field for structs with element-wise schema definition
