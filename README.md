@@ -570,9 +570,13 @@ poxxy.Convert("created_at", &createdAt, func(dateStr string) (time.Time, error) 
 }, opts...)
 
 var updatedAt *time.Time
-poxxy.ConvertPointer("updated_at", &updatedAt, func(dateStr string) (time.Time, error) {
-    return time.Parse("2006-01-02T15:04:05Z", dateStr)
-}, opts...)
+    poxxy.ConvertPointer("updated_at", &updatedAt, func(dateStr string) (*time.Time, error) {
+        t, err := time.Parse("2006-01-02T15:04:05Z", dateStr)
+        if err != nil {
+            return nil, err
+        }
+        return &t, nil
+    }, opts...)
 ```
 
 ### ValueWithoutAssign Fields
@@ -666,9 +670,13 @@ ageTransformer := poxxy.CustomTransformer(func(birthDate string) (int, error) {
 
 var age int
 schema := poxxy.NewSchema(
-    poxxy.Convert("birth_date", &age, func(birthDate string) (int, error) {
-        return ageTransformer.Transform(birthDate)
-    }, poxxy.WithValidators(poxxy.Min(18))),
+            poxxy.Convert("birth_date", &age, func(birthDate string) (*int, error) {
+            age, err := ageTransformer.Transform(birthDate)
+            if err != nil {
+                return nil, err
+            }
+            return &age, nil
+        }, poxxy.WithValidators(poxxy.Min(18))),
 )
 ```
 
@@ -684,9 +692,13 @@ currencyTransformer := poxxy.CustomTransformer(func(amount float64) (string, err
 
 var formattedAmount string
 schema := poxxy.NewSchema(
-    poxxy.Convert("amount", &formattedAmount, func(amount float64) (string, error) {
-        return currencyTransformer.Transform(amount)
-    }),
+            poxxy.Convert("amount", &formattedAmount, func(amount float64) (*string, error) {
+            formatted, err := currencyTransformer.Transform(amount)
+            if err != nil {
+                return nil, err
+            }
+            return &formatted, nil
+        }),
 )
 ```
 
@@ -1163,16 +1175,24 @@ var updatedAt *time.Time
 var unixTimestamp int64
 
 schema := poxxy.NewSchema(
-    poxxy.Convert("created_at", &createdAt, func(dateStr string) (time.Time, error) {
-        return time.Parse("2006-01-02", dateStr)
-    }, poxxy.WithValidators(poxxy.Required())),
+            poxxy.Convert("created_at", &createdAt, func(dateStr string) (*time.Time, error) {
+            t, err := time.Parse("2006-01-02", dateStr)
+            if err != nil {
+                return nil, err
+            }
+            return &t, nil
+        }, poxxy.WithValidators(poxxy.Required())),
 
-    poxxy.ConvertPointer("updated_at", &updatedAt, func(dateStr string) (time.Time, error) {
-        return time.Parse("2006-01-02T15:04:05Z", dateStr)
+    poxxy.ConvertPointer("updated_at", &updatedAt, func(dateStr string) (*time.Time, error) {
+        t, err := time.Parse("2006-01-02T15:04:05Z", dateStr)
+        if err != nil {
+            return nil, err
+        }
+        return &t, nil
     }),
 
-    poxxy.Convert("timestamp", &unixTimestamp, func(unixTime int64) (int64, error) {
-        return unixTime, nil
+    poxxy.Convert("timestamp", &unixTimestamp, func(unixTime int64) (*int64, error) {
+        return &unixTime, nil
     }, poxxy.WithTransformers(poxxy.CustomTransformer(func(timestamp int64) (int64, error) {
         // Ensure timestamp is not in the future
         if timestamp > time.Now().Unix() {
