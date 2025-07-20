@@ -98,6 +98,7 @@ func TestEmail(t *testing.T) {
 		"user+tag@example.org",
 		"123@numbers.com",
 		"test-email@sub.domain.com",
+		"",
 	}
 
 	for _, email := range validEmails {
@@ -117,7 +118,6 @@ func TestEmail(t *testing.T) {
 		"test.example.com",
 		"test@.com",
 		"test@com",
-		"",
 	}
 
 	for _, email := range invalidEmails {

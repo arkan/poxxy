@@ -103,14 +103,27 @@ func Email() Validator {
 			}
 			value = vv
 		}
+		// If the value is nil, we consider it valid.
+		// Use the Required() validator to enforce presence.
+		if value == nil {
+			return nil
+		}
 
 		str, ok := value.(string)
 		if !ok {
-			return fmt.Errorf("email validation requires string value")
+			return fmt.Errorf("email validation requires string value and not a %T type", value)
 		}
+
+		// If the string is empty, we consider it valid.
+		// Use the Required() validator to enforce presence.
+		if str == "" {
+			return nil
+		}
+
 		if !emailRegex.MatchString(str) {
 			return fmt.Errorf("invalid email format")
 		}
+
 		return nil
 	})
 }
