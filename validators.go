@@ -13,14 +13,51 @@ type Validator interface {
 	WithMessage(msg string) Validator
 }
 
-// ValidatorFn is a function that implements Validator
-type ValidatorFn struct {
+// ValidatorFn is a generic function that implements Validator
+type ValidatorFn[T any] struct {
+	fn  func(T, string) error
+	msg string
+}
+
+// Validate validates a value using the validator function
+func (v ValidatorFn[T]) Validate(value interface{}, fieldName string) error {
+	// Type assertion to T
+	typedValue, ok := value.(T)
+	if !ok {
+		return fmt.Errorf("expected type %T, got %T", *new(T), value)
+	}
+
+	err := v.fn(typedValue, fieldName)
+	if err != nil && v.msg != "" {
+		return fmt.Errorf("%s", v.msg)
+	}
+	return err
+}
+
+// WithMessage sets a custom error message for the validator
+func (v ValidatorFn[T]) WithMessage(msg string) Validator {
+	return ValidatorFn[T]{fn: v.fn, msg: msg}
+}
+
+// NewValidatorFn creates a new ValidatorFn with type safety
+func NewValidatorFn[T any](fn func(T, string) error) ValidatorFn[T] {
+	return ValidatorFn[T]{fn: fn}
+}
+
+// NewInterfaceValidator creates a validator that can handle interface{} values
+// This is used for backward compatibility with existing validators
+func NewInterfaceValidator(fn func(interface{}, string) error) Validator {
+	return &interfaceValidator{fn: fn}
+}
+
+// interfaceValidator is a special implementation for interface{} type
+type interfaceValidator struct {
 	fn  func(interface{}, string) error
 	msg string
 }
 
 // Validate validates a value using the validator function
-func (v ValidatorFn) Validate(value interface{}, fieldName string) error {
+func (v *interfaceValidator) Validate(value interface{}, fieldName string) error {
 	err := v.fn(value, fieldName)
 	if err != nil && v.msg != "" {
 		return fmt.Errorf("%s", v.msg)
@@ -29,8 +66,8 @@ func (v ValidatorFn) Validate(value interface{}, fieldName string) error {
 }
 
 // WithMessage sets a custom error message for the validator
-func (v ValidatorFn) WithMessage(msg string) Validator {
-	return ValidatorFn{fn: v.fn, msg: msg}
+func (v *interfaceValidator) WithMessage(msg string) Validator {
+	return &interfaceValidator{fn: v.fn, msg: msg}
 }
 
 // validateFieldValidators is a helper function to validate a list of validators, handling RequiredValidator specially
