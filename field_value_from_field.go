@@ -1,9 +1,5 @@
 package poxxy
 
-import (
-	"fmt"
-)
-
 // ValueWithoutAssignField represents a field that validates a direct value
 type ValueWithoutAssignField[T any] struct {
 	name        string
@@ -55,7 +51,7 @@ func (f *ValueWithoutAssignField[T]) Assign(data map[string]interface{}, schema 
 
 	converted, err := convertValue[T](value)
 	if err != nil {
-		return fmt.Errorf("type conversion failed: %v", err)
+		return err
 	}
 
 	f.value = converted

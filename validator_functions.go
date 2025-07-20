@@ -31,6 +31,7 @@ func (v RequiredValidator) ValidateWithSchema(schema *Schema, fieldName string) 
 		if v.msg != "" {
 			return fmt.Errorf("%s", v.msg)
 		}
+
 		return fmt.Errorf("field is required")
 	}
 
@@ -41,6 +42,7 @@ func (v RequiredValidator) ValidateWithSchema(schema *Schema, fieldName string) 
 		if v.msg != "" {
 			return fmt.Errorf("%s", v.msg)
 		}
+
 		return err
 	}
 
@@ -65,6 +67,7 @@ func NotEmpty() Validator {
 			if err != nil {
 				return fmt.Errorf("error getting value from driver.Valuer: %w", err)
 			}
+
 			value = vv
 		}
 
@@ -242,6 +245,7 @@ func MaxLength(maxLen int) Validator {
 			if err != nil {
 				return fmt.Errorf("error getting value from driver.Valuer for: %w", err)
 			}
+
 			value = vv
 		}
 
@@ -268,6 +272,7 @@ func URL() Validator {
 			if err != nil {
 				return fmt.Errorf("error getting value from driver.Valuer for: %w", err)
 			}
+
 			value = vv
 		}
 
@@ -289,6 +294,7 @@ func URL() Validator {
 		if str == "http://" || str == "https://" {
 			return fmt.Errorf("invalid URL format")
 		}
+
 		return nil
 	})
 }
@@ -308,6 +314,7 @@ func In(values ...interface{}) Validator {
 				if err != nil {
 					return fmt.Errorf("error getting value from driver.Valuer for: %w", err)
 				}
+
 				value = vv
 			}
 
@@ -337,6 +344,7 @@ func Each(validators ...Validator) Validator {
 				}
 			}
 		}
+
 		return nil
 	})
 }
@@ -356,6 +364,7 @@ func Unique() Validator {
 				}
 				seen[item] = true
 			}
+
 			return nil
 
 		case reflect.Map:
@@ -409,6 +418,7 @@ func WithMapKeys(keys ...string) Validator {
 					return fmt.Errorf("key %v not found in map", key)
 				}
 			}
+
 			return nil
 		}
 		if mapData, ok := value.(map[string]interface{}); ok {

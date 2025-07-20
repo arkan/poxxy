@@ -34,9 +34,11 @@ func (f *UnionField) Value() interface{} {
 	if f.ptr == nil {
 		return nil
 	}
+
 	if !f.wasAssigned {
 		return nil
 	}
+
 	return f.ptr
 }
 
@@ -73,6 +75,7 @@ func (f *UnionField) Assign(data map[string]interface{}, schema *Schema) error {
 
 	ptrValue.Elem().Set(reflect.ValueOf(result))
 	f.wasAssigned = true
+
 	return nil
 }
 

@@ -26,9 +26,11 @@ func (f *MapField[K, V]) Value() interface{} {
 	if f.ptr == nil {
 		return nil
 	}
+
 	if !f.wasAssigned {
 		return nil
 	}
+
 	return *f.ptr
 }
 
@@ -73,13 +75,13 @@ func (f *MapField[K, V]) Assign(data map[string]interface{}, schema *Schema) err
 		// Convert key to type K
 		convertedKey, err := convertValue[K](key)
 		if err != nil {
-			return fmt.Errorf("key conversion failed: %v", err)
+			return err
 		}
 
 		// Convert value to type V
 		convertedVal, err := convertValue[V](val)
 		if err != nil {
-			return fmt.Errorf("value conversion failed: %v", err)
+			return err
 		}
 
 		result[convertedKey] = convertedVal
@@ -97,6 +99,7 @@ func (f *MapField[K, V]) Assign(data map[string]interface{}, schema *Schema) err
 
 	*f.ptr = result
 	f.wasAssigned = true
+
 	return nil
 }
 

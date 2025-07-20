@@ -31,6 +31,7 @@ func (v ValidatorFn[T]) Validate(value interface{}, fieldName string) error {
 	if err != nil && v.msg != "" {
 		return fmt.Errorf("%s", v.msg)
 	}
+
 	return err
 }
 
@@ -62,6 +63,7 @@ func (v *interfaceValidator) Validate(value interface{}, fieldName string) error
 	if err != nil && v.msg != "" {
 		return fmt.Errorf("%s", v.msg)
 	}
+
 	return err
 }
 
@@ -84,6 +86,7 @@ func validateFieldValidators(validators []Validator, value interface{}, fieldNam
 			}
 		}
 	}
+
 	return nil
 }
 

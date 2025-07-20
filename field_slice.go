@@ -65,6 +65,7 @@ func (f *SliceField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 			f.wasAssigned = true
 			schema.SetFieldPresent(f.name)
 		}
+
 		return nil
 	}
 
@@ -133,6 +134,7 @@ func (f *SliceField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 
 	*f.ptr = result
 	f.wasAssigned = true
+
 	return nil
 }
 

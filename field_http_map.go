@@ -28,9 +28,11 @@ func (f *HTTPMapField[K, V]) Value() interface{} {
 	if f.ptr == nil {
 		return nil
 	}
+
 	if !f.wasAssigned {
 		return nil
 	}
+
 	return *f.ptr
 }
 
@@ -62,6 +64,7 @@ func (f *HTTPMapField[K, V]) Assign(data map[string]interface{}, schema *Schema)
 		} else {
 			f.wasAssigned = false
 		}
+
 		return nil
 	}
 
@@ -81,6 +84,7 @@ func (f *HTTPMapField[K, V]) Assign(data map[string]interface{}, schema *Schema)
 	}
 
 	*f.ptr = result
+
 	return nil
 }
 
@@ -153,6 +157,7 @@ func convertToURLValues(data map[string]interface{}) url.Values {
 			values.Add(key, fmt.Sprintf("%v", v))
 		}
 	}
+
 	return values
 }
 
@@ -176,6 +181,7 @@ func parseFormCollection(values url.Values, typeName string) map[string]map[stri
 			result[identifier][fieldName] = values[0]
 		}
 	}
+
 	return result
 }
 
@@ -185,5 +191,6 @@ func convertMapStringStringToMapStringInterface(data map[string]string) map[stri
 	for key, value := range data {
 		result[key] = value
 	}
+
 	return result
 }

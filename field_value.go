@@ -1,7 +1,5 @@
 package poxxy
 
-import "fmt"
-
 // ValueField represents a basic value field
 type ValueField[T any] struct {
 	name         string
@@ -82,7 +80,7 @@ func (f *ValueField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 	// Type conversion
 	converted, err := convertValue[T](value)
 	if err != nil {
-		return fmt.Errorf("type conversion failed: %v", err)
+		return err
 	}
 
 	// Apply transformers
@@ -90,7 +88,7 @@ func (f *ValueField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 	for _, transformer := range f.transformers {
 		transformed, err = transformer.Transform(transformed)
 		if err != nil {
-			return fmt.Errorf("transformer failed: %v", err)
+			return err
 		}
 	}
 

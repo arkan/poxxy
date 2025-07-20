@@ -48,9 +48,11 @@ func (f *PointerField[T]) Value() interface{} {
 	if f.ptr == nil {
 		return nil
 	}
+
 	if !f.wasAssigned {
 		return nil
 	}
+
 	return *f.ptr
 }
 
@@ -66,6 +68,7 @@ func (f *PointerField[T]) Assign(data map[string]interface{}, schema *Schema) er
 			f.wasAssigned = true
 			schema.SetFieldPresent(f.name)
 		}
+
 		return nil
 	}
 
@@ -99,7 +102,7 @@ func (f *PointerField[T]) Assign(data map[string]interface{}, schema *Schema) er
 	} else {
 		converted, err := convertValue[T](value)
 		if err != nil {
-			return fmt.Errorf("pointer field conversion failed: %v", err)
+			return err
 		}
 
 		// Apply transformers
@@ -107,7 +110,7 @@ func (f *PointerField[T]) Assign(data map[string]interface{}, schema *Schema) er
 		for _, transformer := range f.transformers {
 			transformed, err = transformer.Transform(transformed)
 			if err != nil {
-				return fmt.Errorf("transformer failed: %v", err)
+				return err
 			}
 		}
 
@@ -123,6 +126,7 @@ func (f *PointerField[T]) Validate(schema *Schema) error {
 	if f.ptr == nil || *f.ptr == nil {
 		return validateFieldValidators(f.Validators, nil, f.name, schema)
 	}
+
 	return validateFieldValidators(f.Validators, **f.ptr, f.name, schema)
 }
 

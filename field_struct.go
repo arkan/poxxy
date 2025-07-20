@@ -26,9 +26,11 @@ func (f *StructField[T]) Value() interface{} {
 	if f.ptr == nil {
 		return nil
 	}
+
 	if !f.wasAssigned {
 		return nil
 	}
+
 	return *f.ptr
 }
 
@@ -52,6 +54,7 @@ func (f *StructField[T]) Assign(data map[string]interface{}, schema *Schema) err
 			f.wasAssigned = true
 			schema.SetFieldPresent(f.name)
 		}
+
 		return nil
 	}
 

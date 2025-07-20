@@ -48,9 +48,11 @@ func (f *ConvertField[From, To]) Value() interface{} {
 	if f.ptr == nil {
 		return nil
 	}
+
 	if !f.wasAssigned {
 		return nil
 	}
+
 	return *f.ptr
 }
 
@@ -77,13 +79,13 @@ func (f *ConvertField[From, To]) Assign(data map[string]interface{}, schema *Sch
 	// Convert from input type to From type
 	fromValue, err := convertValue[From](value)
 	if err != nil {
-		return fmt.Errorf("type conversion failed: %v", err)
+		return err
 	}
 
 	// Apply custom conversion
 	converted, err := f.convert(fromValue)
 	if err != nil {
-		return fmt.Errorf("conversion failed: %v", err)
+		return err
 	}
 
 	// If converter returns nil, don't mutate the pointer
@@ -103,6 +105,7 @@ func (f *ConvertField[From, To]) Assign(data map[string]interface{}, schema *Sch
 
 	*f.ptr = transformed
 	f.wasAssigned = true
+
 	return nil
 }
 
@@ -206,6 +209,7 @@ func (f *ConvertPointerField[From, To]) Assign(data map[string]interface{}, sche
 			f.wasAssigned = true
 			schema.SetFieldPresent(f.name)
 		}
+
 		return nil
 	}
 
@@ -219,13 +223,13 @@ func (f *ConvertPointerField[From, To]) Assign(data map[string]interface{}, sche
 	// Convert from input type to From type
 	fromValue, err := convertValue[From](value)
 	if err != nil {
-		return fmt.Errorf("type conversion failed: %v", err)
+		return err
 	}
 
 	// Apply custom conversion
 	converted, err := f.convert(fromValue)
 	if err != nil {
-		return fmt.Errorf("conversion failed: %v", err)
+		return err
 	}
 
 	// If converter returns nil, don't mutate the pointer
@@ -245,6 +249,7 @@ func (f *ConvertPointerField[From, To]) Assign(data map[string]interface{}, sche
 
 	*f.ptr = &transformed
 	f.wasAssigned = true
+
 	return nil
 }
 
@@ -253,6 +258,7 @@ func (f *ConvertPointerField[From, To]) Validate(schema *Schema) error {
 	if f.ptr == nil || *f.ptr == nil {
 		return validateFieldValidators(f.Validators, nil, f.name, schema)
 	}
+
 	return validateFieldValidators(f.Validators, **f.ptr, f.name, schema)
 }
 

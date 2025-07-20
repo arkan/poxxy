@@ -76,6 +76,7 @@ func (s *Schema) ApplyHTTPRequest(r *http.Request, options ...SchemaOption) erro
 		for key, values := range r.URL.Query() {
 			params[key] = values[0]
 		}
+
 		return s.Apply(params, options...)
 	}
 }
@@ -147,6 +148,7 @@ func (s *Schema) GetFieldValue(fieldName string) (interface{}, bool) {
 			return f.Value(), true
 		}
 	}
+
 	return nil, false
 }
 
