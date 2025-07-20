@@ -116,24 +116,22 @@ func (s *Schema) Apply(data map[string]interface{}, options ...SchemaOption) err
 		}
 	}
 
-	// If there are any errors, return them
-	if len(errors) > 0 {
-		return errors
-	}
-
-	// If we skip validators, we return nil
+	// If we skip validators, return any assignment errors
 	if s.skipValidators {
+		if len(errors) > 0 {
+			return errors
+		}
 		return nil
 	}
 
-	// Second pass: validate
+	// Second pass: validate (even if there were assignment errors)
 	for _, field := range s.fields {
 		if err := field.Validate(s); err != nil {
 			errors = append(errors, FieldError{Field: field.Name(), Error: err, Description: field.Description()})
 		}
 	}
 
-	// If there are any errors, return them
+	// Return all errors (assignment + validation)
 	if len(errors) > 0 {
 		return errors
 	}

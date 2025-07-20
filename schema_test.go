@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSchema_ApplyHTTPRequest(t *testing.T) {
@@ -328,4 +329,75 @@ func TestSchema_ApplyWithConvert(t *testing.T) {
 		assert.Len(t, errs, 1)
 		assert.Equal(t, "must be greater than 1717689600", errs[0].Error.Error())
 	})
+}
+
+func TestSchema_ApplyWithMultipleErrors(t *testing.T) {
+	values := url.Values{
+		"page":          []string{"-2"},       // 1 is the minimum page
+		"limit":         []string{"99"},       // 100 is the minimum limit
+		"abtdated":      []string{"20240101"}, // invalid date format
+		"abtdatef":      []string{"20241231"}, // invalid date format
+		"abtedi":        []string{"INVALID"},  // invalid editeur code
+		"abtcdee":       []string{"INVALID"},  // invalid cdee code
+		"abtreg":        []string{"INVALID"},  // invalid registration code
+		"email_address": []string{"INVALID"},  // invalid email address
+		"periode_type":  []string{"INVALID"},  // invalid periode type
+	}
+
+	var page int
+	var limit int
+	var emailAddress *string
+	var periodeType *string
+	var byAbtDated *time.Time
+	var byAbtDatef *time.Time
+	var byAbtEditeur *int64
+	var byAbtreg *bool
+
+	timeParsing := func(s string) (*time.Time, error) {
+		if s == "" {
+			return nil, nil
+		}
+
+		t, err := time.Parse("2006-01-02", s)
+		if err != nil {
+			return nil, err
+		}
+
+		return &t, nil
+	}
+
+	schema := NewSchema(
+		Value("page", &page, WithValidators(Required(), Min(1))),
+		Value("limit", &limit, WithValidators(Required(), Min(100))),
+		Pointer("email_address", &emailAddress, WithValidators(Required(), Email())),
+		Pointer("periode_type", &periodeType, WithValidators(Required(), In("monthly", "yearly"))),
+		ConvertPointer[string, time.Time]("abtdated",
+			&byAbtDated,
+			timeParsing,
+			WithDescription("Date de début"),
+			WithDefault(time.Date(time.Now().Year(), time.January, 1, 0, 0, 0, 0, time.UTC)),
+		),
+		ConvertPointer[string, time.Time]("abtdatef",
+			&byAbtDatef,
+			timeParsing,
+			WithDescription("Date de fin"),
+			WithDefault(time.Date(time.Now().Year(), time.December, 31, 0, 0, 0, 0, time.UTC)),
+		),
+		Pointer("abtedi",
+			&byAbtEditeur,
+			WithDescription("Code éditeur"),
+		),
+		Pointer("abtreg",
+			&byAbtreg,
+			WithDescription("Paiement"),
+		),
+	)
+
+	r, err := http.NewRequest("GET", "/?"+values.Encode(), nil)
+	require.NoError(t, err)
+	err = schema.ApplyHTTPRequest(r)
+	require.Error(t, err)
+	errs, ok := err.(Errors)
+	require.True(t, ok)
+	require.Len(t, errs, 8)
 }

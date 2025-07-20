@@ -842,7 +842,7 @@ func TestSlice(t *testing.T) {
 
 		err := schema.Apply(data)
 		assert.Error(t, err)
-		assert.Equal(t, "people: element 1: name: value cannot be empty; age: value must be at least 0", err.Error())
+		assert.Equal(t, "people: element 1: name: value cannot be empty; age: value must be at least 0; people: must have at least 2 items", err.Error())
 	})
 
 	// Test slice-level validation
