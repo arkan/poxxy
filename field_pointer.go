@@ -1,7 +1,9 @@
 package poxxy
 
 import (
+	"database/sql/driver"
 	"fmt"
+	"reflect"
 )
 
 // PointerField represents a pointer field
@@ -51,6 +53,18 @@ func (f *PointerField[T]) Value() interface{} {
 
 	if !f.wasAssigned {
 		return nil
+	}
+
+	// Use reflection to check if value implements driver.Valuer
+	v := reflect.ValueOf(*f.ptr)
+	if v.Type().Implements(reflect.TypeOf((*driver.Valuer)(nil)).Elem()) {
+		if valuer, ok := v.Interface().(driver.Valuer); ok {
+			value, err := valuer.Value()
+			if err != nil {
+				return nil
+			}
+			return value
+		}
 	}
 
 	return *f.ptr

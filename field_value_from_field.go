@@ -1,5 +1,10 @@
 package poxxy
 
+import (
+	"database/sql/driver"
+	"reflect"
+)
+
 // ValueWithoutAssignField represents a field that validates a direct value
 type ValueWithoutAssignField[T any] struct {
 	name        string
@@ -32,6 +37,19 @@ func (f *ValueWithoutAssignField[T]) Value() interface{} {
 	if !f.wasAssigned {
 		return nil
 	}
+
+	// Use reflection to check if value implements driver.Valuer
+	v := reflect.ValueOf(f.value)
+	if v.Type().Implements(reflect.TypeOf((*driver.Valuer)(nil)).Elem()) {
+		if valuer, ok := v.Interface().(driver.Valuer); ok {
+			value, err := valuer.Value()
+			if err != nil {
+				return nil
+			}
+			return value
+		}
+	}
+
 	return f.value
 }
 

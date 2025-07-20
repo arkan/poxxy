@@ -86,6 +86,22 @@ func TestRequired(t *testing.T) {
 			t.Errorf("Expected 'field is required' error, got: %v", err)
 		}
 	})
+
+	t.Run("field present with '' value should fail", func(t *testing.T) {
+		var value sql.NullString
+		schema := NewSchema(
+			Value("test", &value, WithValidators(Required())),
+		)
+
+		data := map[string]interface{}{
+			"test": "",
+		}
+
+		err := schema.Apply(data)
+		if assert.Error(t, err) {
+			assert.Equal(t, "test: field is required", err.Error())
+		}
+	})
 }
 
 func TestEmail(t *testing.T) {

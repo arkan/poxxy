@@ -1,6 +1,7 @@
 package poxxy
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 
@@ -27,6 +28,47 @@ func TestConvertWithNewSignature(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEqual(t, originalValue, timestamp)
 		assert.Equal(t, int64(1717689600), timestamp.Unix())
+	})
+
+	t.Run("convert sql.NullString", func(t *testing.T) {
+		var createdAt sql.NullString
+
+		schema := NewSchema(
+			Convert[int64, sql.NullString]("created_at", &createdAt, func(unixTime int64) (*sql.NullString, error) {
+				t := sql.NullString{String: time.Unix(unixTime, 0).Format(time.RFC3339), Valid: true}
+				return &t, nil
+			}),
+		)
+
+		data := map[string]interface{}{
+			"created_at": int64(1717689600),
+		}
+
+		err := schema.Apply(data)
+		assert.NoError(t, err)
+
+		assert.Equal(t, "2024-06-06T18:00:00+02:00", createdAt.String)
+		assert.Equal(t, true, createdAt.Valid)
+	})
+
+	t.Run("convert sql.NullString with required validator", func(t *testing.T) {
+		var createdAt sql.NullString
+
+		schema := NewSchema(
+			Convert[int64, sql.NullString]("created_at", &createdAt, func(unixTime int64) (*sql.NullString, error) {
+				t := sql.NullString{String: time.Unix(unixTime, 0).Format(time.RFC3339), Valid: true}
+				return &t, nil
+			}, WithValidators(Required())),
+		)
+
+		data := map[string]interface{}{
+			"created_at": "",
+		}
+
+		err := schema.Apply(data)
+		if assert.Error(t, err) {
+			assert.Equal(t, "created_at: field is required", err.Error())
+		}
 	})
 
 	t.Run("convert returns nil - should not mutate", func(t *testing.T) {

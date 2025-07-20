@@ -1,7 +1,8 @@
 package poxxy
 
 import (
-	"fmt"
+	"database/sql/driver"
+	"reflect"
 )
 
 // ConvertField represents a field with type conversion
@@ -53,6 +54,18 @@ func (f *ConvertField[From, To]) Value() interface{} {
 		return nil
 	}
 
+	// Use reflection to check if value implements driver.Valuer
+	v := reflect.ValueOf(*f.ptr)
+	if v.Type().Implements(reflect.TypeOf((*driver.Valuer)(nil)).Elem()) {
+		if valuer, ok := v.Interface().(driver.Valuer); ok {
+			value, err := valuer.Value()
+			if err != nil {
+				return nil
+			}
+			return value
+		}
+	}
+
 	return *f.ptr
 }
 
@@ -72,6 +85,11 @@ func (f *ConvertField[From, To]) Assign(data map[string]interface{}, schema *Sch
 	schema.SetFieldPresent(f.name)
 
 	if value == nil {
+		f.wasAssigned = false
+		return nil
+	}
+
+	if _, ok := value.(string); ok && value.(string) == "" {
 		f.wasAssigned = false
 		return nil
 	}
@@ -99,7 +117,7 @@ func (f *ConvertField[From, To]) Assign(data map[string]interface{}, schema *Sch
 	for _, transformer := range f.transformers {
 		transformed, err = transformer.Transform(transformed)
 		if err != nil {
-			return fmt.Errorf("transformer failed: %v", err)
+			return err
 		}
 	}
 
@@ -196,6 +214,19 @@ func (f *ConvertPointerField[From, To]) Value() interface{} {
 	if !f.wasAssigned {
 		return nil
 	}
+
+	// Use reflection to check if value implements driver.Valuer
+	v := reflect.ValueOf(*f.ptr)
+	if v.Type().Implements(reflect.TypeOf((*driver.Valuer)(nil)).Elem()) {
+		if valuer, ok := v.Interface().(driver.Valuer); ok {
+			value, err := valuer.Value()
+			if err != nil {
+				return nil
+			}
+			return value
+		}
+	}
+
 	return *f.ptr
 }
 
@@ -216,6 +247,11 @@ func (f *ConvertPointerField[From, To]) Assign(data map[string]interface{}, sche
 	schema.SetFieldPresent(f.name)
 
 	if value == nil {
+		f.wasAssigned = false
+		return nil
+	}
+
+	if _, ok := value.(string); ok && value.(string) == "" {
 		f.wasAssigned = false
 		return nil
 	}
@@ -243,7 +279,7 @@ func (f *ConvertPointerField[From, To]) Assign(data map[string]interface{}, sche
 	for _, transformer := range f.transformers {
 		transformed, err = transformer.Transform(transformed)
 		if err != nil {
-			return fmt.Errorf("transformer failed: %v", err)
+			return err
 		}
 	}
 

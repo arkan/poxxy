@@ -76,6 +76,11 @@ func (f *SliceField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 		return nil
 	}
 
+	if _, ok := value.(string); ok && value.(string) == "" {
+		f.wasAssigned = false
+		return nil
+	}
+
 	// Accept []interface{}, []map[string]interface{}, or any slice/array via reflection
 	var slice []interface{}
 

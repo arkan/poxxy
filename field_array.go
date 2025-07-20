@@ -79,6 +79,11 @@ func (f *ArrayField[T]) Assign(data map[string]interface{}, schema *Schema) erro
 		return nil
 	}
 
+	if _, ok := value.(string); ok && value.(string) == "" {
+		f.wasAssigned = false
+		return nil
+	}
+
 	// Get the array pointer and its element type
 	ptrValue := reflect.ValueOf(f.ptr)
 	if ptrValue.Kind() != reflect.Ptr {

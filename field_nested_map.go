@@ -70,6 +70,11 @@ func (f *NestedMapField[K, V]) Assign(data map[string]interface{}, schema *Schem
 		return nil
 	}
 
+	if _, ok := value.(string); ok && value.(string) == "" {
+		f.wasAssigned = false
+		return nil
+	}
+
 	mapData, ok := value.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("expected map for nested map field")

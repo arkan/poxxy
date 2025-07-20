@@ -1,5 +1,10 @@
 package poxxy
 
+import (
+	"database/sql/driver"
+	"reflect"
+)
+
 // ValueField represents a basic value field
 type ValueField[T any] struct {
 	name         string
@@ -25,6 +30,19 @@ func (f *ValueField[T]) Value() interface{} {
 	if !f.wasAssigned {
 		return nil
 	}
+
+	// Use reflection to check if value implements driver.Valuer
+	v := reflect.ValueOf(*f.ptr)
+	if v.Type().Implements(reflect.TypeOf((*driver.Valuer)(nil)).Elem()) {
+		if valuer, ok := v.Interface().(driver.Valuer); ok {
+			value, err := valuer.Value()
+			if err != nil {
+				return nil
+			}
+			return value
+		}
+	}
+
 	return *f.ptr
 }
 
