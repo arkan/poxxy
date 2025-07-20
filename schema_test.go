@@ -195,13 +195,15 @@ func TestSchema_ApplyWithConvert(t *testing.T) {
 
 		schema := NewSchema(
 			// Transform Unix timestamp to time.Time
-			Convert[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (time.Time, error) {
-				return time.Unix(unixTime, 0), nil
+			Convert[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (*time.Time, error) {
+				t := time.Unix(unixTime, 0)
+				return &t, nil
 			}, WithValidators(Required())),
 
 			// Normalize email to lowercase
-			Convert[string, string]("email", &normalizedEmail, func(email string) (string, error) {
-				return strings.ToLower(strings.TrimSpace(email)), nil
+			Convert[string, string]("email", &normalizedEmail, func(email string) (*string, error) {
+				s := strings.ToLower(strings.TrimSpace(email))
+				return &s, nil
 			}, WithValidators(Required(), Email())),
 		)
 
@@ -224,13 +226,15 @@ func TestSchema_ApplyWithConvert(t *testing.T) {
 
 		schema := NewSchema(
 			// Transform Unix timestamp to time.Time
-			Convert[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (time.Time, error) {
-				return time.Unix(unixTime, 0), nil
+			Convert[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (*time.Time, error) {
+				t := time.Unix(unixTime, 0)
+				return &t, nil
 			}, WithValidators(Required()), WithDefault(time.Unix(1717689600, 0))),
 
 			// Normalize email to lowercase
-			Convert[string, string]("email", &normalizedEmail, func(email string) (string, error) {
-				return strings.ToLower(strings.TrimSpace(email)), nil
+			Convert[string, string]("email", &normalizedEmail, func(email string) (*string, error) {
+				s := strings.ToLower(strings.TrimSpace(email))
+				return &s, nil
 			}, WithValidators(Required(), Email())),
 		)
 
@@ -252,13 +256,15 @@ func TestSchema_ApplyWithConvert(t *testing.T) {
 
 		schema := NewSchema(
 			// Transform Unix timestamp to time.Time
-			ConvertPointer[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (time.Time, error) {
-				return time.Unix(unixTime, 0), nil
+			ConvertPointer[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (*time.Time, error) {
+				t := time.Unix(unixTime, 0)
+				return &t, nil
 			}, WithValidators(Required()), WithDefault(time.Unix(1717689600, 0))),
 
 			// Normalize email to lowercase
-			ConvertPointer[string, string]("email", &normalizedEmail, func(email string) (string, error) {
-				return strings.ToLower(strings.TrimSpace(email)), nil
+			ConvertPointer[string, string]("email", &normalizedEmail, func(email string) (*string, error) {
+				s := strings.ToLower(strings.TrimSpace(email))
+				return &s, nil
 			}, WithValidators(Required(), Email())),
 		)
 
@@ -296,15 +302,17 @@ func TestSchema_ApplyWithConvert(t *testing.T) {
 		unix := int64(1717689600)
 		schema := NewSchema(
 			// Transform Unix timestamp to time.Time
-			Convert[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (time.Time, error) {
-				return time.Unix(unixTime, 0), nil
+			Convert[int64, time.Time]("created_at", &timestamp, func(unixTime int64) (*time.Time, error) {
+				t := time.Unix(unixTime, 0)
+				return &t, nil
 			}, WithValidators(Required(), ValidatorFunc(func(value time.Time, fieldName string) error {
 				return fmt.Errorf("must be greater than %d", unix)
 			}))),
 
 			// Normalize email to lowercase
-			Convert[string, string]("email", &normalizedEmail, func(email string) (string, error) {
-				return strings.ToLower(strings.TrimSpace(email)), nil
+			Convert[string, string]("email", &normalizedEmail, func(email string) (*string, error) {
+				s := strings.ToLower(strings.TrimSpace(email))
+				return &s, nil
 			}, WithValidators(Required(), Email())),
 		)
 

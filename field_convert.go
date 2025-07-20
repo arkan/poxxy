@@ -9,7 +9,7 @@ type ConvertField[From, To any] struct {
 	name         string
 	description  string
 	ptr          *To
-	convert      func(From) (To, error)
+	convert      func(From) (*To, error)
 	Validators   []Validator
 	wasAssigned  bool // Track if a non-nil value was assigned
 	defaultValue To
@@ -86,8 +86,14 @@ func (f *ConvertField[From, To]) Assign(data map[string]interface{}, schema *Sch
 		return fmt.Errorf("conversion failed: %v", err)
 	}
 
+	// If converter returns nil, don't mutate the pointer
+	if converted == nil {
+		f.wasAssigned = false
+		return nil
+	}
+
 	// Apply transformers
-	transformed := converted
+	transformed := *converted
 	for _, transformer := range f.transformers {
 		transformed, err = transformer.Transform(transformed)
 		if err != nil {
@@ -111,7 +117,7 @@ func (f *ConvertField[From, To]) AppendValidators(validators []Validator) {
 }
 
 // Convert creates a conversion field
-func Convert[From, To any](name string, ptr *To, convert func(From) (To, error), opts ...Option) Field {
+func Convert[From, To any](name string, ptr *To, convert func(From) (*To, error), opts ...Option) Field {
 	field := &ConvertField[From, To]{
 		name:    name,
 		ptr:     ptr,
@@ -126,7 +132,7 @@ func Convert[From, To any](name string, ptr *To, convert func(From) (To, error),
 }
 
 // ConvertPointer creates a conversion field for pointer types
-func ConvertPointer[From, To any](name string, ptr **To, convert func(From) (To, error), opts ...Option) Field {
+func ConvertPointer[From, To any](name string, ptr **To, convert func(From) (*To, error), opts ...Option) Field {
 	field := &ConvertPointerField[From, To]{
 		name:    name,
 		ptr:     ptr,
@@ -145,7 +151,7 @@ type ConvertPointerField[From, To any] struct {
 	name         string
 	description  string
 	ptr          **To
-	convert      func(From) (To, error)
+	convert      func(From) (*To, error)
 	Validators   []Validator
 	wasAssigned  bool // Track if a non-nil value was assigned
 	defaultValue To
@@ -222,8 +228,14 @@ func (f *ConvertPointerField[From, To]) Assign(data map[string]interface{}, sche
 		return fmt.Errorf("conversion failed: %v", err)
 	}
 
+	// If converter returns nil, don't mutate the pointer
+	if converted == nil {
+		f.wasAssigned = false
+		return nil
+	}
+
 	// Apply transformers
-	transformed := converted
+	transformed := *converted
 	for _, transformer := range f.transformers {
 		transformed, err = transformer.Transform(transformed)
 		if err != nil {
