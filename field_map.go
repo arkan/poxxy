@@ -47,7 +47,7 @@ func (f *MapField[K, V]) SetDescription(description string) {
 // Assign assigns a value to the field from the input data
 func (f *MapField[K, V]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
-	if !exists {
+	if !exists || isEmpty(value) {
 		// Apply default value if available
 		if f.hasDefault {
 			*f.ptr = f.defaultValue

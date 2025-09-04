@@ -56,7 +56,7 @@ func (f *ValueWithoutAssignField[T]) Value() interface{} {
 // Assign assigns a value to the field from the input data
 func (f *ValueWithoutAssignField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
-	if !exists {
+	if !exists || isEmpty(value) {
 		return nil
 	}
 

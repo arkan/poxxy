@@ -73,7 +73,7 @@ func (f *PointerField[T]) Value() interface{} {
 // Assign assigns a value to the field from the input data
 func (f *PointerField[T]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
-	if !exists {
+	if !exists || isEmpty(value) {
 		// Apply default value if available
 		if f.hasDefault {
 			instance := new(T)

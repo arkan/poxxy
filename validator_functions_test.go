@@ -62,8 +62,8 @@ func TestRequired(t *testing.T) {
 			t.Error("Expected error when field is present with empty string, got nil")
 		}
 
-		if !strings.Contains(err.Error(), "value cannot be empty") {
-			t.Errorf("Expected 'value cannot be empty' error, got: %v", err)
+		if !strings.Contains(err.Error(), "field is required") {
+			t.Errorf("Expected 'field is required' error, got: %v", err)
 		}
 	})
 
@@ -842,7 +842,7 @@ func TestSlice(t *testing.T) {
 
 		err := schema.Apply(data)
 		assert.Error(t, err)
-		assert.Equal(t, "people: element 1: name: value cannot be empty; age: value must be at least 0; people: must have at least 2 items", err.Error())
+		assert.Equal(t, "people: element 1: name: field is required; age: value must be at least 0; people: must have at least 2 items", err.Error())
 	})
 
 	// Test slice-level validation

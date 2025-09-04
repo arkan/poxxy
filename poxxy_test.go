@@ -145,7 +145,7 @@ func TestPoxxy_Map_DefaultValue(t *testing.T) {
 	})
 
 	// Test default value with nil field
-	t.Run("default value not applied when field is explicitly nil", func(t *testing.T) {
+	t.Run("default value applied when field is nil", func(t *testing.T) {
 		var userSettings map[string]string
 		defaultSettings := map[string]string{
 			"theme":    "dark",
@@ -166,7 +166,12 @@ func TestPoxxy_Map_DefaultValue(t *testing.T) {
 
 		// When field is explicitly null, default value should not be applied
 		// The field should remain unassigned (nil map)
-		assert.Nil(t, userSettings)
+		if assert.NotNil(t, userSettings) {
+			assert.Equal(t, 3, len(userSettings))
+			assert.Equal(t, "dark", userSettings["theme"])
+			assert.Equal(t, "en", userSettings["language"])
+			assert.Equal(t, "UTC", userSettings["timezone"])
+		}
 	})
 
 	// Test SetDefaultValue method directly
@@ -484,7 +489,7 @@ func TestPoxxy_Struct_DefaultValue(t *testing.T) {
 	})
 
 	// Test default value with nil field
-	t.Run("default value not applied when field is explicitly nil", func(t *testing.T) {
+	t.Run("default value applied when field is nil", func(t *testing.T) {
 		var user User
 		defaultUser := User{Name: "Default User", Age: 25}
 
@@ -505,8 +510,8 @@ func TestPoxxy_Struct_DefaultValue(t *testing.T) {
 
 		// When field is explicitly null, default value should not be applied
 		// The field should remain unassigned (zero values)
-		assert.Equal(t, "", user.Name)
-		assert.Equal(t, 0, user.Age)
+		assert.Equal(t, "Default User", user.Name)
+		assert.Equal(t, 25, user.Age)
 	})
 
 	// Test SetDefaultValue method directly
@@ -601,7 +606,7 @@ func TestPoxxy_NestedMap_DefaultValue(t *testing.T) {
 	})
 
 	// Test default value with nil field
-	t.Run("default value not applied when field is explicitly nil", func(t *testing.T) {
+	t.Run("default value applied when field is nil", func(t *testing.T) {
 		var userPreferences map[string]string
 		defaultPreferences := map[string]string{
 			"theme":    "dark",
@@ -625,7 +630,12 @@ func TestPoxxy_NestedMap_DefaultValue(t *testing.T) {
 
 		// When field is explicitly null, default value should not be applied
 		// The field should remain unassigned (nil map)
-		assert.Nil(t, userPreferences)
+		if assert.NotNil(t, userPreferences) {
+			assert.Equal(t, 3, len(userPreferences))
+			assert.Equal(t, "dark", userPreferences["theme"])
+			assert.Equal(t, "en", userPreferences["language"])
+			assert.Equal(t, "UTC", userPreferences["timezone"])
+		}
 	})
 
 	// Test SetDefaultValue method directly

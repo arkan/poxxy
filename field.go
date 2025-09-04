@@ -59,3 +59,12 @@ type Field interface {
 	// Validate validates the field value using all registered validators
 	Validate(schema *Schema) error
 }
+
+func isEmpty[T comparable](v T) bool {
+	if vv, ok := any(v).(string); ok && vv == "" {
+		return true
+	}
+
+	var zero T
+	return zero == v
+}

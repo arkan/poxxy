@@ -101,6 +101,7 @@ func TestTransformers_EdgeCases(t *testing.T) {
 		}
 
 		for _, tc := range titleCases {
+			value = "" // reset value to empty string
 			err := schema.Apply(map[string]interface{}{"test": tc.input})
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expected, value)
@@ -127,6 +128,7 @@ func TestTransformers_EdgeCases(t *testing.T) {
 		}
 
 		for _, tc := range capitalizeCases {
+			value = "" // reset value to empty string
 			err := schema.Apply(map[string]interface{}{"test": tc.input})
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expected, value)
@@ -151,6 +153,7 @@ func TestTransformers_EdgeCases(t *testing.T) {
 		}
 
 		for _, tc := range emailCases {
+			value = "" // reset value to empty string
 			err := schema.Apply(map[string]interface{}{"test": tc.input})
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expected, value)

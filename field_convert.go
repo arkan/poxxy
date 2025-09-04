@@ -233,7 +233,7 @@ func (f *ConvertPointerField[From, To]) Value() interface{} {
 // Assign assigns a value to the field from the input data
 func (f *ConvertPointerField[From, To]) Assign(data map[string]interface{}, schema *Schema) error {
 	value, exists := data[f.name]
-	if !exists {
+	if !exists || isEmpty(value) {
 		// Apply default value if available
 		if f.hasDefault {
 			*f.ptr = &f.defaultValue
