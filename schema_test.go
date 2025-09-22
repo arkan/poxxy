@@ -78,6 +78,25 @@ func TestSchema_ApplyHTTPRequest(t *testing.T) {
 			expectedAge:  30,
 		},
 		{
+			name: "urlencoded content type with form data",
+			setupSchema: func(name *string, age *int) *Schema {
+				return NewSchema(
+					Value("name", name),
+					Value("age", age),
+				)
+			},
+			request: func() *http.Request {
+				form := url.Values{}
+				form.Add("name", "OVERRIDEN NAME")
+				form.Add("age", "20")
+				req, _ := http.NewRequest("POST", "/test?name=John&age=30", strings.NewReader(form.Encode()))
+				return req
+			}(),
+			wantErr:      false,
+			expectedName: "John",
+			expectedAge:  30,
+		},
+		{
 			name: "no content type",
 			setupSchema: func(name *string, age *int) *Schema {
 				return NewSchema(
@@ -100,7 +119,7 @@ func TestSchema_ApplyHTTPRequest(t *testing.T) {
 			var name string
 			var age int
 			schema := tt.setupSchema(&name, &age)
-			err := schema.ApplyHTTPRequest(tt.request)
+			err := schema.ApplyHTTPRequest(nil, tt.request, nil)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -395,7 +414,7 @@ func TestSchema_ApplyWithMultipleErrors(t *testing.T) {
 
 	r, err := http.NewRequest("GET", "/?"+values.Encode(), nil)
 	require.NoError(t, err)
-	err = schema.ApplyHTTPRequest(r)
+	err = schema.ApplyHTTPRequest(nil, r, nil)
 	require.Error(t, err)
 	errs, ok := err.(Errors)
 	require.True(t, ok)

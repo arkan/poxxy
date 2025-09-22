@@ -3,7 +3,6 @@ package poxxy
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 )
 
@@ -37,24 +36,53 @@ func WithSkipValidators(skipValidators bool) SchemaOption {
 	}
 }
 
+type ContentTypeParsing uint8
+
+const (
+	_                                         = iota
+	ContentTypeParsingAuto ContentTypeParsing = iota
+	ContentTypeParsingJSON
+	ContentTypeParsingForm
+	ContentTypeParsingQuery
+)
+
+type HTTPRequestOption struct {
+	MaxRequestBodySize int64
+	ContentTypeParsing ContentTypeParsing
+}
+
 // ApplyHTTPRequest assigns data from an HTTP request to a schema
 // It supports application/json and application/x-www-form-urlencoded
 // It will return an error if the content type is not supported
-func (s *Schema) ApplyHTTPRequest(r *http.Request, options ...SchemaOption) error {
-	contentType := r.Header.Get("Content-Type")
-	switch contentType {
-	case "application/json":
-		body, err := io.ReadAll(io.LimitReader(r.Body, MaxBodySize))
-		if err != nil {
-			return fmt.Errorf("failed to read request body: %w", err)
+func (s *Schema) ApplyHTTPRequest(w http.ResponseWriter, r *http.Request, httpRequestOption *HTTPRequestOption, options ...SchemaOption) error {
+	if httpRequestOption == nil {
+		httpRequestOption = &HTTPRequestOption{
+			MaxRequestBodySize: MaxBodySize,
+			ContentTypeParsing: ContentTypeParsingAuto,
+		}
+	}
+
+	// Determine the content type parsing strategy depending on the content type header.
+	// We only do this for ContentTypeParsingAuto.
+	if httpRequestOption.ContentTypeParsing == ContentTypeParsingAuto {
+		switch r.Header.Get("Content-Type") {
+		case "application/json":
+			httpRequestOption.ContentTypeParsing = ContentTypeParsingJSON
+		case "application/x-www-form-urlencoded":
+			httpRequestOption.ContentTypeParsing = ContentTypeParsingForm
+		default:
+			httpRequestOption.ContentTypeParsing = ContentTypeParsingQuery
+		}
+	}
+
+	// Apply the content type parsing strategy.
+	switch httpRequestOption.ContentTypeParsing {
+	case ContentTypeParsingForm:
+		if httpRequestOption.MaxRequestBodySize > 0 {
+			// Limit the request body size
+			r.Body = http.MaxBytesReader(w, r.Body, httpRequestOption.MaxRequestBodySize)
 		}
 
-		var data map[string]interface{}
-		if err := json.Unmarshal(body, &data); err != nil {
-			return fmt.Errorf("failed to unmarshal request body: %w", err)
-		}
-		return s.Apply(data, options...)
-	case "application/x-www-form-urlencoded":
 		if err := r.ParseForm(); err != nil {
 			return fmt.Errorf("failed to parse form: %w", err)
 		}
@@ -70,8 +98,22 @@ func (s *Schema) ApplyHTTPRequest(r *http.Request, options ...SchemaOption) erro
 		}
 
 		return s.Apply(form, options...)
+	case ContentTypeParsingJSON:
+		if httpRequestOption.MaxRequestBodySize > 0 {
+			// Limit the request body size
+			r.Body = http.MaxBytesReader(w, r.Body, httpRequestOption.MaxRequestBodySize)
+		}
+
+		var data map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+			return fmt.Errorf("failed to unmarshal request body: %w", err)
+		}
+
+		return s.Apply(data, options...)
 	default:
-		// We parse request url query params
+		// If the content type parsing strategy is not set, we fall through to the default case ContentTypeParsingQuery.
+		fallthrough
+	case ContentTypeParsingQuery:
 		params := make(map[string]interface{})
 		for key, values := range r.URL.Query() {
 			params[key] = values[0]
