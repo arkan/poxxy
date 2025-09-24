@@ -324,7 +324,7 @@ func In(values ...interface{}) Validator {
 			}
 		}
 
-		return fmt.Errorf("value must be one of: %v", values)
+		return fmt.Errorf("value %v must be one of: %v", value, values)
 	})
 }
 

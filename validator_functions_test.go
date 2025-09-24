@@ -510,7 +510,7 @@ func TestIn(t *testing.T) {
 		if err == nil {
 			t.Errorf("Expected error for driver.Valuer, got: %v", err)
 		}
-		if err.Error() != "value must be one of: [1 2 3]" {
+		if err.Error() != "value 2.5 must be one of: [1 2 3]" {
 			t.Errorf("Expected error for driver.Valuer, got: %v", err)
 		}
 	})
