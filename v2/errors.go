@@ -29,18 +29,15 @@ func (e *ValidationError) Unwrap() error {
 	return e.Cause
 }
 
-// Translate translates the error message using the given catalog.
+// Translate translates the error message using the given translator.
 // Returns a new ValidationError with the translated message.
-func (e *ValidationError) Translate(catalog *MessageCatalog) *ValidationError {
-	if catalog == nil {
+func (e *ValidationError) Translate(t Translator) *ValidationError {
+	if t == nil {
 		return e
 	}
 
-	// Get translated message template from catalog
-	msg := catalog.Get(MessageKey(e.Rule))
-
-	// Interpolate with params
-	translatedMsg := interpolateTemplate(msg, e.Params)
+	// Format the message using the translator
+	translatedMsg := t.Format(e.Rule, e.Params)
 
 	return &ValidationError{
 		Field:   e.Field,
@@ -91,10 +88,10 @@ func (e *ValidationErrors) Merge(other *ValidationErrors) {
 	e.Errors = append(e.Errors, other.Errors...)
 }
 
-// Translate translates all error messages using the given catalog.
+// Translate translates all error messages using the given translator.
 // Returns a new ValidationErrors with translated messages.
-func (e *ValidationErrors) Translate(catalog *MessageCatalog) *ValidationErrors {
-	if catalog == nil || len(e.Errors) == 0 {
+func (e *ValidationErrors) Translate(t Translator) *ValidationErrors {
+	if t == nil || len(e.Errors) == 0 {
 		return e
 	}
 
@@ -102,7 +99,7 @@ func (e *ValidationErrors) Translate(catalog *MessageCatalog) *ValidationErrors 
 		Errors: make([]*ValidationError, len(e.Errors)),
 	}
 	for i, err := range e.Errors {
-		translated.Errors[i] = err.Translate(catalog)
+		translated.Errors[i] = err.Translate(t)
 	}
 	return translated
 }

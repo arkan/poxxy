@@ -26,6 +26,14 @@ type Decoder interface {
 	Decode(v any) error
 }
 
+// Translator provides message translation for validation errors.
+// Implement this interface to provide custom translations.
+// The i18n sub-package provides a ready-to-use implementation.
+type Translator interface {
+	// Format returns a formatted message for the given rule and parameters.
+	Format(rule string, params map[string]any) string
+}
+
 // field is the internal interface for schema fields.
 type field interface {
 	name() string
@@ -68,7 +76,7 @@ type Schema struct {
 	logger      *slog.Logger
 	strictTypes bool
 	fieldMap    map[string]field
-	catalog     *MessageCatalog
+	translator  Translator
 }
 
 // NewSchema creates a new schema with the given fields.
@@ -101,18 +109,16 @@ func (s *Schema) StrictTypes(strict bool) *Schema {
 	return s
 }
 
-// WithCatalog sets a message catalog for i18n support.
-func (s *Schema) WithCatalog(catalog *MessageCatalog) *Schema {
-	s.catalog = catalog
+// WithTranslator sets a translator for i18n support.
+// Use i18n.French(), i18n.Spanish(), etc. or implement the Translator interface.
+func (s *Schema) WithTranslator(t Translator) *Schema {
+	s.translator = t
 	return s
 }
 
-// Catalog returns the current message catalog (default if not set).
-func (s *Schema) Catalog() *MessageCatalog {
-	if s.catalog == nil {
-		return defaultCatalog
-	}
-	return s.catalog
+// Translator returns the current translator (nil if not set).
+func (s *Schema) Translator() Translator {
+	return s.translator
 }
 
 // Parse decodes from an io.Reader and validates.
@@ -154,9 +160,9 @@ func (s *Schema) ParseMap(data map[string]any) error {
 	}
 
 	if errs.HasErrors() {
-		// Translate errors if a catalog is set
-		if s.catalog != nil {
-			return errs.Translate(s.catalog)
+		// Translate errors if a translator is set
+		if s.translator != nil {
+			return errs.Translate(s.translator)
 		}
 		return errs
 	}
