@@ -168,6 +168,47 @@ func (b *FieldBuilder[T]) validate(path string, schema *Schema) *ValidationError
 	return nil
 }
 
+func (b *FieldBuilder[T]) fieldInfo() FieldInfo {
+	var zero T
+	typeName := reflect.TypeOf(zero).String()
+
+	info := FieldInfo{
+		Name:        b.fieldName,
+		Type:        typeName,
+		Description: b.desc,
+		Required:    b.hasRequiredValidator(),
+		Nullable:    false,
+		Validators:  b.validatorInfos(),
+	}
+
+	if b.defaultValue != nil {
+		info.Default = *b.defaultValue
+	}
+
+	return info
+}
+
+func (b *FieldBuilder[T]) hasRequiredValidator() bool {
+	for _, v := range b.validators {
+		if v.Rule() == "required" {
+			return true
+		}
+	}
+	return false
+}
+
+func (b *FieldBuilder[T]) validatorInfos() []ValidatorInfo {
+	infos := make([]ValidatorInfo, 0, len(b.validators))
+	for _, v := range b.validators {
+		if provider, ok := any(v).(ValidatorInfoProvider); ok {
+			infos = append(infos, provider.Info())
+		} else {
+			infos = append(infos, ValidatorInfo{Rule: v.Rule()})
+		}
+	}
+	return infos
+}
+
 // PointerBuilder provides a fluent API for building optional pointer fields.
 type PointerBuilder[T any] struct {
 	fieldName      string
@@ -339,6 +380,38 @@ func (b *PointerBuilder[T]) validate(path string, schema *Schema) *ValidationErr
 	return nil
 }
 
+func (b *PointerBuilder[T]) fieldInfo() FieldInfo {
+	var zero T
+	typeName := "*" + reflect.TypeOf(zero).String()
+
+	info := FieldInfo{
+		Name:        b.fieldName,
+		Type:        typeName,
+		Description: b.desc,
+		Required:    false, // Pointer fields are never required
+		Nullable:    true,
+		Validators:  b.validatorInfos(),
+	}
+
+	if b.defaultValue != nil {
+		info.Default = *b.defaultValue
+	}
+
+	return info
+}
+
+func (b *PointerBuilder[T]) validatorInfos() []ValidatorInfo {
+	infos := make([]ValidatorInfo, 0, len(b.validators))
+	for _, v := range b.validators {
+		if provider, ok := any(v).(ValidatorInfoProvider); ok {
+			infos = append(infos, provider.Info())
+		} else {
+			infos = append(infos, ValidatorInfo{Rule: v.Rule()})
+		}
+	}
+	return infos
+}
+
 // SliceBuilder provides a fluent API for building slice fields.
 type SliceBuilder[T any] struct {
 	fieldName    string
@@ -505,6 +578,43 @@ func (b *SliceBuilder[T]) validate(path string, schema *Schema) *ValidationError
 	return nil
 }
 
+func (b *SliceBuilder[T]) fieldInfo() FieldInfo {
+	var zero T
+	elemType := reflect.TypeOf(zero).String()
+
+	info := FieldInfo{
+		Name:        b.fieldName,
+		Type:        "[]" + elemType,
+		Description: b.desc,
+		Required:    b.hasRequiredValidator(),
+		IsSlice:     true,
+		Validators:  b.validatorInfos(),
+	}
+
+	return info
+}
+
+func (b *SliceBuilder[T]) hasRequiredValidator() bool {
+	for _, v := range b.validators {
+		if v.Rule() == "required" || v.Rule() == "min_items" {
+			return true
+		}
+	}
+	return false
+}
+
+func (b *SliceBuilder[T]) validatorInfos() []ValidatorInfo {
+	infos := make([]ValidatorInfo, 0, len(b.validators))
+	for _, v := range b.validators {
+		if provider, ok := any(v).(ValidatorInfoProvider); ok {
+			infos = append(infos, provider.Info())
+		} else {
+			infos = append(infos, ValidatorInfo{Rule: v.Rule()})
+		}
+	}
+	return infos
+}
+
 // MapBuilder provides a fluent API for building map fields.
 type MapBuilder[K comparable, V any] struct {
 	fieldName  string
@@ -637,6 +747,45 @@ func (b *MapBuilder[K, V]) validate(path string, schema *Schema) *ValidationErro
 	return nil
 }
 
+func (b *MapBuilder[K, V]) fieldInfo() FieldInfo {
+	var zeroK K
+	var zeroV V
+	keyType := reflect.TypeOf(zeroK).String()
+	valType := reflect.TypeOf(zeroV).String()
+
+	info := FieldInfo{
+		Name:        b.fieldName,
+		Type:        "map[" + keyType + "]" + valType,
+		Description: b.desc,
+		Required:    b.hasRequiredValidator(),
+		IsMap:       true,
+		Validators:  b.validatorInfos(),
+	}
+
+	return info
+}
+
+func (b *MapBuilder[K, V]) hasRequiredValidator() bool {
+	for _, v := range b.validators {
+		if v.Rule() == "required" || v.Rule() == "min_items" {
+			return true
+		}
+	}
+	return false
+}
+
+func (b *MapBuilder[K, V]) validatorInfos() []ValidatorInfo {
+	infos := make([]ValidatorInfo, 0, len(b.validators))
+	for _, v := range b.validators {
+		if provider, ok := any(v).(ValidatorInfoProvider); ok {
+			infos = append(infos, provider.Info())
+		} else {
+			infos = append(infos, ValidatorInfo{Rule: v.Rule()})
+		}
+	}
+	return infos
+}
+
 // structField represents a nested struct field.
 type structField struct {
 	fieldName string
@@ -736,6 +885,25 @@ func (f *structField) validate(path string, schema *Schema) *ValidationErrors {
 		return errs
 	}
 	return nil
+}
+
+func (f *structField) fieldInfo() FieldInfo {
+	destType := reflect.TypeOf(f.dest)
+	typeName := destType.String()
+	if destType.Kind() == reflect.Ptr {
+		typeName = destType.Elem().String()
+	}
+
+	info := FieldInfo{
+		Name:        f.fieldName,
+		Type:        typeName,
+		Description: f.desc,
+		Required:    false,
+		IsStruct:    true,
+		Children:    f.schema.FieldInfos(),
+	}
+
+	return info
 }
 
 // ConvertBuilder provides a fluent API for type conversion fields.
@@ -891,6 +1059,47 @@ func (b *ConvertBuilder[From, To]) validate(path string, schema *Schema) *Valida
 		return errs
 	}
 	return nil
+}
+
+func (b *ConvertBuilder[From, To]) fieldInfo() FieldInfo {
+	var zeroTo To
+	typeName := reflect.TypeOf(zeroTo).String()
+
+	info := FieldInfo{
+		Name:        b.fieldName,
+		Type:        typeName,
+		Description: b.desc,
+		Required:    b.hasRequiredValidator(),
+		Nullable:    false,
+		Validators:  b.validatorInfos(),
+	}
+
+	if b.defaultValue != nil {
+		info.Default = *b.defaultValue
+	}
+
+	return info
+}
+
+func (b *ConvertBuilder[From, To]) hasRequiredValidator() bool {
+	for _, v := range b.validators {
+		if v.Rule() == "required" {
+			return true
+		}
+	}
+	return false
+}
+
+func (b *ConvertBuilder[From, To]) validatorInfos() []ValidatorInfo {
+	infos := make([]ValidatorInfo, 0, len(b.validators))
+	for _, v := range b.validators {
+		if provider, ok := any(v).(ValidatorInfoProvider); ok {
+			infos = append(infos, provider.Info())
+		} else {
+			infos = append(infos, ValidatorInfo{Rule: v.Rule()})
+		}
+	}
+	return infos
 }
 
 // isZero checks if a value is its zero value.

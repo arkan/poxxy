@@ -36,6 +36,32 @@ type field interface {
 	isNull() bool
 }
 
+// FieldInfo contains metadata about a field for documentation generation.
+type FieldInfo struct {
+	Name        string            // Field name
+	Type        string            // Go type name (string, int, []string, etc.)
+	Description string            // Field description
+	Required    bool              // Whether field is required
+	Nullable    bool              // Whether field can be null (pointer types)
+	IsSlice     bool              // Whether field is a slice
+	IsMap       bool              // Whether field is a map
+	IsStruct    bool              // Whether field is a nested struct
+	Validators  []ValidatorInfo   // Validator metadata
+	Children    []FieldInfo       // Nested fields for struct types
+	Default     any               // Default value if set
+}
+
+// ValidatorInfo contains metadata about a validator.
+type ValidatorInfo struct {
+	Rule   string         // Validator rule name (required, min, max, etc.)
+	Params map[string]any // Validator parameters (min value, max value, pattern, etc.)
+}
+
+// documentable is implemented by fields that can provide documentation metadata.
+type documentable interface {
+	fieldInfo() FieldInfo
+}
+
 // Schema orchestrates field assignment and validation.
 type Schema struct {
 	fields      []field
@@ -230,4 +256,15 @@ func fieldPath(prefix, name string) string {
 // indexPath builds the path for slice/array elements.
 func indexPath(prefix string, index int) string {
 	return fmt.Sprintf("%s[%d]", prefix, index)
+}
+
+// FieldInfos returns metadata about all fields for documentation generation.
+func (s *Schema) FieldInfos() []FieldInfo {
+	infos := make([]FieldInfo, 0, len(s.fields))
+	for _, f := range s.fields {
+		if doc, ok := f.(documentable); ok {
+			infos = append(infos, doc.fieldInfo())
+		}
+	}
+	return infos
 }

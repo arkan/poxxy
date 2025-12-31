@@ -10,12 +10,24 @@ import (
 	"golang.org/x/text/language"
 )
 
+// ValidatorInfoProvider is implemented by validators that can provide metadata.
+type ValidatorInfoProvider interface {
+	Info() ValidatorInfo
+}
+
 // baseValidator provides common functionality for all validators.
 type baseValidator[T any] struct {
 	rule    string
 	msg     string
 	params  map[string]any
 	checkFn func(value T, field string) error
+}
+
+func (v *baseValidator[T]) Info() ValidatorInfo {
+	return ValidatorInfo{
+		Rule:   v.rule,
+		Params: v.params,
+	}
 }
 
 func (v *baseValidator[T]) Validate(value T, field string) error {
@@ -197,6 +209,51 @@ func Between[T Ordered](min, max T) Validator[T] {
 		checkFn: func(value T, field string) error {
 			if value < min || value > max {
 				return newValidationError(field, value, "between", "{field} must be between {min} and {max}", map[string]any{"min": min, "max": max})
+			}
+			return nil
+		},
+	}
+}
+
+// Positive validates that a numeric value is greater than zero.
+func Positive[T Ordered]() Validator[T] {
+	var zero T
+	return &baseValidator[T]{
+		rule:   "positive",
+		params: map[string]any{},
+		checkFn: func(value T, field string) error {
+			if value <= zero {
+				return newValidationError(field, value, "positive", "{field} must be positive", nil)
+			}
+			return nil
+		},
+	}
+}
+
+// Negative validates that a numeric value is less than zero.
+func Negative[T Ordered]() Validator[T] {
+	var zero T
+	return &baseValidator[T]{
+		rule:   "negative",
+		params: map[string]any{},
+		checkFn: func(value T, field string) error {
+			if value >= zero {
+				return newValidationError(field, value, "negative", "{field} must be negative", nil)
+			}
+			return nil
+		},
+	}
+}
+
+// NonZero validates that a numeric value is not zero.
+func NonZero[T Ordered]() Validator[T] {
+	var zero T
+	return &baseValidator[T]{
+		rule:   "non_zero",
+		params: map[string]any{},
+		checkFn: func(value T, field string) error {
+			if value == zero {
+				return newValidationError(field, value, "non_zero", "{field} must not be zero", nil)
 			}
 			return nil
 		},
