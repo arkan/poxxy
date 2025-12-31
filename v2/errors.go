@@ -7,11 +7,12 @@ import (
 
 // ValidationError represents a single validation error.
 type ValidationError struct {
-	Field   string // Flat field name: "users[2].email"
-	Value   any    // The invalid value
-	Rule    string // "required", "min", "email", etc.
-	Message string // Human-readable message
-	Cause   error  // Underlying error
+	Field   string         // Flat field name: "users[2].email"
+	Value   any            // The invalid value
+	Rule    string         // "required", "min", "email", etc.
+	Message string         // Human-readable message (already interpolated)
+	Params  map[string]any // Parameters for message interpolation (for i18n)
+	Cause   error          // Underlying error
 }
 
 func (e *ValidationError) Error() string {
@@ -26,6 +27,29 @@ func (e *ValidationError) Error() string {
 
 func (e *ValidationError) Unwrap() error {
 	return e.Cause
+}
+
+// Translate translates the error message using the given catalog.
+// Returns a new ValidationError with the translated message.
+func (e *ValidationError) Translate(catalog *MessageCatalog) *ValidationError {
+	if catalog == nil {
+		return e
+	}
+
+	// Get translated message template from catalog
+	msg := catalog.Get(MessageKey(e.Rule))
+
+	// Interpolate with params
+	translatedMsg := interpolateTemplate(msg, e.Params)
+
+	return &ValidationError{
+		Field:   e.Field,
+		Value:   e.Value,
+		Rule:    e.Rule,
+		Message: translatedMsg,
+		Params:  e.Params,
+		Cause:   e.Cause,
+	}
 }
 
 // ValidationErrors represents a collection of validation errors.
@@ -67,14 +91,39 @@ func (e *ValidationErrors) Merge(other *ValidationErrors) {
 	e.Errors = append(e.Errors, other.Errors...)
 }
 
+// Translate translates all error messages using the given catalog.
+// Returns a new ValidationErrors with translated messages.
+func (e *ValidationErrors) Translate(catalog *MessageCatalog) *ValidationErrors {
+	if catalog == nil || len(e.Errors) == 0 {
+		return e
+	}
+
+	translated := &ValidationErrors{
+		Errors: make([]*ValidationError, len(e.Errors)),
+	}
+	for i, err := range e.Errors {
+		translated.Errors[i] = err.Translate(catalog)
+	}
+	return translated
+}
+
 // newValidationError creates a ValidationError with template message interpolation.
 func newValidationError(field string, value any, rule string, msg string, params map[string]any) *ValidationError {
+	// Merge field and value into params for later translation
+	allParams := make(map[string]any)
+	for k, v := range params {
+		allParams[k] = v
+	}
+	allParams["field"] = field
+	allParams["value"] = value
+
 	message := interpolateMessage(msg, field, value, params)
 	return &ValidationError{
 		Field:   field,
 		Value:   value,
 		Rule:    rule,
 		Message: message,
+		Params:  allParams,
 	}
 }
 

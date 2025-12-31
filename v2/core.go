@@ -128,6 +128,10 @@ func (s *Schema) ParseMap(data map[string]any) error {
 	}
 
 	if errs.HasErrors() {
+		// Translate errors if a catalog is set
+		if s.catalog != nil {
+			return errs.Translate(s.catalog)
+		}
 		return errs
 	}
 	return nil
