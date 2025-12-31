@@ -113,6 +113,25 @@ func URL() Validator[string] {
 	}
 }
 
+var uuidRegex = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+
+// UUID validates that a string is a valid UUID (v1-v5).
+func UUID() Validator[string] {
+	return &baseValidator[string]{
+		rule:   "uuid",
+		params: nil,
+		checkFn: func(value string, field string) error {
+			if value == "" {
+				return nil
+			}
+			if !uuidRegex.MatchString(value) {
+				return newValidationError(field, value, "uuid", "{field} must be a valid UUID", nil)
+			}
+			return nil
+		},
+	}
+}
+
 // Pattern validates that a string matches a regex pattern.
 func Pattern(pattern string) Validator[string] {
 	re := regexp.MustCompile(pattern)
@@ -483,6 +502,142 @@ func (v *funcValidator[T]) WithMessage(msg string) Validator[T] {
 		fn:  v.fn,
 		msg: msg,
 	}
+}
+
+// =============================================================================
+// Deferred Validators (Async Validation)
+// =============================================================================
+
+// DeferredCheck is a function that performs deferred validation (e.g., DB lookups).
+type DeferredCheck func() error
+
+// DeferredValidator is a validator that returns a deferred check function.
+// Use this for validations requiring external calls (DB, API, etc.).
+type DeferredValidator[T any] interface {
+	Validate(value T, field string) (DeferredCheck, error)
+	Rule() string
+	WithMessage(msg string) DeferredValidator[T]
+}
+
+// deferredValidator wraps a function as a deferred validator.
+type deferredValidator[T any] struct {
+	rule string
+	msg  string
+	fn   func(value T, field string) DeferredCheck
+}
+
+// Deferred creates a deferred validator from a function.
+// The function returns a DeferredCheck that will be executed after synchronous validation.
+func Deferred[T any](fn func(value T, field string) DeferredCheck) DeferredValidator[T] {
+	return &deferredValidator[T]{
+		rule: "deferred",
+		fn:   fn,
+	}
+}
+
+// DeferredNamed creates a named deferred validator from a function.
+func DeferredNamed[T any](rule string, fn func(value T, field string) DeferredCheck) DeferredValidator[T] {
+	return &deferredValidator[T]{
+		rule: rule,
+		fn:   fn,
+	}
+}
+
+func (v *deferredValidator[T]) Validate(value T, field string) (DeferredCheck, error) {
+	check := v.fn(value, field)
+	return check, nil
+}
+
+func (v *deferredValidator[T]) Rule() string {
+	return v.rule
+}
+
+func (v *deferredValidator[T]) WithMessage(msg string) DeferredValidator[T] {
+	return &deferredValidator[T]{
+		rule: v.rule,
+		msg:  msg,
+		fn:   v.fn,
+	}
+}
+
+// DeferredChecks collects deferred checks for batch execution.
+type DeferredChecks struct {
+	checks []struct {
+		field string
+		check DeferredCheck
+	}
+}
+
+// Add adds a deferred check to the collection.
+func (d *DeferredChecks) Add(field string, check DeferredCheck) {
+	if check != nil {
+		d.checks = append(d.checks, struct {
+			field string
+			check DeferredCheck
+		}{field: field, check: check})
+	}
+}
+
+// Run executes all deferred checks sequentially and returns any errors.
+func (d *DeferredChecks) Run() *ValidationErrors {
+	errs := &ValidationErrors{}
+	for _, c := range d.checks {
+		if err := c.check(); err != nil {
+			errs.Add(&ValidationError{
+				Field:   c.field,
+				Rule:    "deferred",
+				Message: err.Error(),
+				Cause:   err,
+			})
+		}
+	}
+	if errs.HasErrors() {
+		return errs
+	}
+	return nil
+}
+
+// RunParallel executes all deferred checks in parallel and returns any errors.
+func (d *DeferredChecks) RunParallel() *ValidationErrors {
+	if len(d.checks) == 0 {
+		return nil
+	}
+
+	type result struct {
+		field string
+		err   error
+	}
+
+	results := make(chan result, len(d.checks))
+
+	for _, c := range d.checks {
+		go func(field string, check DeferredCheck) {
+			results <- result{field: field, err: check()}
+		}(c.field, c.check)
+	}
+
+	errs := &ValidationErrors{}
+	for range d.checks {
+		r := <-results
+		if r.err != nil {
+			errs.Add(&ValidationError{
+				Field:   r.field,
+				Rule:    "deferred",
+				Message: r.err.Error(),
+				Cause:   r.err,
+			})
+		}
+	}
+
+	if errs.HasErrors() {
+		return errs
+	}
+	return nil
+}
+
+// HasChecks returns true if there are deferred checks to run.
+func (d *DeferredChecks) HasChecks() bool {
+	return len(d.checks) > 0
 }
 
 // =============================================================================

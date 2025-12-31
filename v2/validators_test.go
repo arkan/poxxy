@@ -608,3 +608,157 @@ func TestIntegrationWithSchema(t *testing.T) {
 		}
 	})
 }
+
+func TestUUID(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   string
+		wantErr bool
+	}{
+		{"empty string", "", false}, // Empty is allowed, use Required for non-empty
+		{"valid uuid v4", "550e8400-e29b-41d4-a716-446655440000", false},
+		{"valid uuid uppercase", "550E8400-E29B-41D4-A716-446655440000", false},
+		{"invalid - no dashes", "550e8400e29b41d4a716446655440000", true},
+		{"invalid - wrong format", "550e8400-e29b-41d4-a716", true},
+		{"invalid - not hex", "gggg8400-e29b-41d4-a716-446655440000", true},
+		{"random string", "not-a-uuid", true},
+	}
+
+	v := UUID()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := v.Validate(tt.value, "id")
+			if (err != nil) != tt.wantErr {
+				t.Errorf("UUID().Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestDeferredValidator(t *testing.T) {
+	// Simulate a database check
+	existingEmails := map[string]bool{
+		"taken@example.com": true,
+	}
+
+	emailChecker := Deferred[string](func(email string, field string) DeferredCheck {
+		return func() error {
+			if existingEmails[email] {
+				return errors.New("email already registered")
+			}
+			return nil
+		}
+	})
+
+	t.Run("valid deferred check", func(t *testing.T) {
+		check, err := emailChecker.Validate("new@example.com", "email")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if check == nil {
+			t.Fatal("expected check function")
+		}
+		// Run the deferred check
+		if err := check(); err != nil {
+			t.Fatalf("unexpected check error: %v", err)
+		}
+	})
+
+	t.Run("failing deferred check", func(t *testing.T) {
+		check, err := emailChecker.Validate("taken@example.com", "email")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		// Run the deferred check
+		if err := check(); err == nil {
+			t.Fatal("expected check to fail")
+		}
+	})
+}
+
+func TestDeferredValidatorNamed(t *testing.T) {
+	checker := DeferredNamed[string]("email_unique", func(email string, field string) DeferredCheck {
+		return func() error {
+			return nil
+		}
+	})
+
+	if checker.Rule() != "email_unique" {
+		t.Errorf("expected rule 'email_unique', got %q", checker.Rule())
+	}
+}
+
+func TestDeferredChecks_Run(t *testing.T) {
+	checks := &DeferredChecks{}
+
+	checks.Add("email", func() error {
+		return nil
+	})
+	checks.Add("username", func() error {
+		return errors.New("username taken")
+	})
+	checks.Add("phone", func() error {
+		return nil
+	})
+
+	errs := checks.Run()
+	if errs == nil {
+		t.Fatal("expected errors")
+	}
+	if len(errs.Errors) != 1 {
+		t.Errorf("expected 1 error, got %d", len(errs.Errors))
+	}
+	if errs.Errors[0].Field != "username" {
+		t.Errorf("expected field 'username', got %q", errs.Errors[0].Field)
+	}
+}
+
+func TestDeferredChecks_RunParallel(t *testing.T) {
+	checks := &DeferredChecks{}
+
+	// Add multiple checks that will run in parallel
+	for i := 0; i < 5; i++ {
+		idx := i
+		checks.Add("field"+string(rune('0'+idx)), func() error {
+			if idx == 2 || idx == 4 {
+				return errors.New("failed")
+			}
+			return nil
+		})
+	}
+
+	errs := checks.RunParallel()
+	if errs == nil {
+		t.Fatal("expected errors")
+	}
+	if len(errs.Errors) != 2 {
+		t.Errorf("expected 2 errors, got %d", len(errs.Errors))
+	}
+}
+
+func TestDeferredChecks_NoChecks(t *testing.T) {
+	checks := &DeferredChecks{}
+
+	if checks.HasChecks() {
+		t.Error("expected no checks")
+	}
+
+	// Run should return nil with no checks
+	if errs := checks.Run(); errs != nil {
+		t.Errorf("expected nil, got %v", errs)
+	}
+
+	// RunParallel should also return nil with no checks
+	if errs := checks.RunParallel(); errs != nil {
+		t.Errorf("expected nil, got %v", errs)
+	}
+}
+
+func TestDeferredChecks_AddNil(t *testing.T) {
+	checks := &DeferredChecks{}
+	checks.Add("field", nil) // Should not panic or add
+
+	if checks.HasChecks() {
+		t.Error("nil checks should not be added")
+	}
+}

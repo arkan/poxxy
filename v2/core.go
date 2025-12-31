@@ -42,6 +42,7 @@ type Schema struct {
 	logger      *slog.Logger
 	strictTypes bool
 	fieldMap    map[string]field
+	catalog     *MessageCatalog
 }
 
 // NewSchema creates a new schema with the given fields.
@@ -72,6 +73,20 @@ func (s *Schema) WithLogger(logger *slog.Logger) *Schema {
 func (s *Schema) StrictTypes(strict bool) *Schema {
 	s.strictTypes = strict
 	return s
+}
+
+// WithCatalog sets a message catalog for i18n support.
+func (s *Schema) WithCatalog(catalog *MessageCatalog) *Schema {
+	s.catalog = catalog
+	return s
+}
+
+// Catalog returns the current message catalog (default if not set).
+func (s *Schema) Catalog() *MessageCatalog {
+	if s.catalog == nil {
+		return defaultCatalog
+	}
+	return s.catalog
 }
 
 // Parse decodes from an io.Reader and validates.
